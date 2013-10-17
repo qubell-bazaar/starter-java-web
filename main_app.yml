@@ -1,0 +1,228 @@
+application:
+  configuration:
+    input.db-name: petclinic
+    input.lb-bucket: http://roundrobin:80    
+    input.git-fork: qubell
+    input.git-branch: HEAD #red, master
+    input.app-quantity: "1"
+
+  bindings:
+    - [main.workflow, db]
+    - [main.workflow, app]
+    - [main.workflow, lb]
+
+  interfaces:
+    input:
+      db-name: "bind(main.workflow#input.db-name)"
+      git-fork: "bind(main.workflow#input.git-app-fork)"
+      git-branch: "bind(main.workflow#input.git-app-branch)"
+      lb-bucket: "bind(main.workflow#input.lb-bucket)"
+      app-quantity: "bind(main.workflow#input.app-quantity)"
+
+  components:
+    main:
+      bindings:
+        - [wfService, workflow]
+      components:
+        wfService:
+          type: reference.Service
+          interfaces:
+            executor:
+              execute-workflow: receive-command(object request => object status => object status)
+              #execute-command:    send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
+        workflow:
+          type: workflow.Instance
+          #todo: think on env properties
+          #configuration:
+          #  input.db-sql-url: "" #const
+          #  input.db-user: petclinic #const
+          #  input.db-password: petclinic #const
+          #  input.privileges: "" #const
+          #  input.stats-user: admin
+          #  input.stats-pass: pa55w0rd
+          #  input.stats-port: "1926"
+          #  input.stats-url: /admin?stats
+          interfaces:
+            input:
+              db-name: configuration(string)
+              git-app-fork: configuration(string)
+              git-app-branch: configuration(string)
+              lb-bucket: configuration(string)
+              app-quantity: configuration(string)
+              #as constants
+              db-sql-url: configuration(string)
+              db-user: configuration(string)
+              db-password: configuration(string)
+              privileges:  configuration(string)
+              lbstats-stats-user: configuration(string)
+              lbstats-stats-pass: configuration(string)
+              lbstats-stats-port: configuration(string)
+              lbstats-stats-url: configuration(string)
+            db-info:
+              dbms: consume-signal(object)
+            db-manage:
+              create-db: send-command(string db-name => object db)
+              change-grants: send-command(list<string> app-host, object db, object user, string privileges)
+              run-sql: send-command(object db, string sql-url)
+            app-manage:
+              deploy-app: send-command(string git-app-fork, string git-app-branch)
+              configure-dbconnection: send-command(string db-host, string db-port, string db-name, string db-user, string db-pass) 
+            app-output:
+              app-host: consume-signal(list<string>)
+              app-port: consume-signal(string)
+            lb-manage:
+              add-server: send-command(string app-server, string lb-bucket)
+
+          required: [db-manage, app-manage, lb-manage]
+          configuration:
+            input.db-sql-url: "" #const
+            input.db-user: petclinic #const
+            input.db-password: petclinic #const
+            input.privileges: "" #const
+            input.lbstats-stats-user: admin
+            input.lbstats-stats-pass: pa55w0rd
+            input.lbstats-stats-port: "1926"
+            input.lbstats-stats-url: /admin?stats
+            configuration.triggers: {}
+            configuration.workflows:
+              launch:
+                parameters:
+                  - db-name:
+                      description: primary db name
+                  - db-sql-url: &db-sql
+                      description: sql url
+                  - db-user: &db-user
+                      description: user for new database
+                  - db-password: &db-password
+                      description: user password for new database
+                  - privileges: &privileges
+                      description: user privileges for new database
+                  - git-app-fork: &git-app-fork
+                      description: git fork
+                  - git-app-branch: &git-app-branch
+                      description: git branch
+                  - lbstats-stats-user: &lbstats-stats-user
+                      description: lb statistic user
+                  - lbstats-stats-pass: &lbstats-stats-pass
+                      description: lb statistic user's password 
+                  - lbstats-stats-port: &lbstats-stats-port
+                      description: lb statistic port
+                  - lbstats-stats-url: &lbstats-stats-url
+                      description: lb statistic's url
+                steps:
+                  - create-db:
+                      action: serviceCall
+                      phase: create-db
+                      parameters:
+                        service: db-manage
+                        command: create-db
+                        arguments:
+                          db-name: "{$.db-name}"
+                  - grant-db:
+                      action: serviceCall
+                      precedingPhases: [ create-db ]
+                      phase: grant-db
+                      parameters:
+                        service: db-manage
+                        command: change-grants
+                        arguments:
+                          app-host: []
+                          db-name: "{$.db-name}"
+                          db-user: "{$.db-user}"
+                          db-pass: "{$.db-password}"
+                          privileges: "{$.privileges}"
+                  - run-sql:
+                      action: serviceCall
+                      precedingPhases: [ grant-db ]
+                      phase: run-sql
+                      parameters:
+                        service: db-manage
+                        command: run-sql
+                        arguments:
+                          db-name: "{$.db-name}"
+                          sql-url: "{$.db-sql}"
+                  - deploy-app:
+                      action: serviceCall
+                      phase: deploy-app
+                      parameters:
+                        service: app-manage
+                        command: deploy-app
+                        arguments:
+                           git-app-fork: "{$.git-app-fork}"
+                           git-app-branch: "{$.git-app-branch}"
+                  - get-env-props:
+                      action: getEnvironmentProperties
+                      phase: get-env-props
+                      output:
+                        props: result 
+                  - configure-dbconnection:
+                      action: serviceCall
+                      precedingPhases: [ get-env-props, deploy-app ]
+                      phase: configure-dbconnection
+                      parameters:
+                        service: app-manage
+                        command: configure-dbconnection
+                        arguments:
+                          db-host: "{$.props.db-info.dbms.host}"
+                          db-port: "{$.props.db-info.dbms.port}"
+                          db-name: "{$.db-name}"
+                          db-user: "{$.db-user}"
+                          db-pass: "{$.db-password}"
+                  - lb-add-server:
+                      action: serviceCall
+                      precedingPhases: [ configure-dbconnection ]
+                      phase: lb-add-server
+                      parameters:
+                        service: lb-manage
+                        command: add-server
+                        arguments:
+                          app-server: "{$.props.app-output.app-host}:{$.props.app-output.app-port}"
+                          lb-bucket: "http://roundrobin:80/"
+                          #todo move lb-bucket to launch param
+                #todo: enpoint
+              destroy:
+                steps: []
+
+    db:
+      type: reference.Submodule
+      configuration:
+        __locator.application-id: "524d3c35e4b0a49c99bce659"
+      interfaces:
+        input:
+          db-version: configuration(string)
+          db-root-password: configuration(string)
+        management:
+          create-db: receive-command(string db-name => object db)
+          change-grants: receive-command(list<string> app-host, object db, object user, string privileges)
+          run-sql: receive-command(object db, string sql-url)
+        output:
+          dbms: publish-signal(object)
+
+    app:
+      type: reference.Submodule
+      configuration:
+        __locator.application-id: "52541baae4b0d1f365e542ef"
+      interfaces:
+        input:
+          app-quantity: configuration(string)
+        management:
+          deploy-app: receive-command(string git-app-fork, string git-app-branch)
+          configure-dbconnection: receive-command(string db-host, string db-port, string db-name, string db-user, string db-pass) 
+        output:
+          app-host: publish-signal(list<string>)
+          app-port: publish-signal(string)
+
+    lb:
+      type: reference.Submodule
+      configuration:
+        __locator.application-id: "525bf165e4b076b76b636d65"
+      interfaces:
+        input:
+          stats-user: configuration(string)
+          stats-pass: configuration(string)
+          stats-port: configuration(string)
+          stats-url: configuration(string)
+        management:
+          add-server: receive-command(string app-server, string lb-bucket)
+        output:
+          lb-url: publish-signal(string)
