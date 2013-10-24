@@ -2,8 +2,8 @@ application:
   configuration:
     input.db-name: petclinic
     input.lb-bucket: http://roundrobin:80    
-    input.git-fork: qubell
-    input.git-branch: HEAD #red, master
+    input.app-fork: qubell
+    input.app-branch: HEAD #red, master
     input.app-quantity: "1"
 
   bindings:
@@ -14,14 +14,14 @@ application:
   interfaces:
     input:
       db-name: "bind(main.workflow#input.db-name)"
-      git-fork: "bind(main.workflow#input.git-app-fork)"
-      git-branch: "bind(main.workflow#input.git-app-branch)"
+      app-fork: "bind(main.workflow#input.app-fork)"
+      app-branch: "bind(main.workflow#input.app-branch)"
       lb-bucket: "bind(main.workflow#input.lb-bucket)"
       app-quantity: "bind(main.workflow#input.app-quantity)"
     ui-output:
       lb: "bind(lb#output.lb-stats)"
-      #app: "bind(app.#output.app-host)"
-      #db: "bind(db.#output.dbms)"
+      app: "bind(app#output.app-host)"
+      db: "bind(db#output.dbms)"
 
   components:
     main:
@@ -37,20 +37,12 @@ application:
         workflow:
           type: workflow.Instance
           #todo: think on env properties
-          #configuration:
-          #  input.db-sql-url: "" #const
-          #  input.db-user: petclinic #const
-          #  input.db-password: petclinic #const
-          #  input.privileges: "" #const
-          #  input.stats-user: admin
-          #  input.stats-pass: pa55w0rd
-          #  input.stats-port: "1926"
-          #  input.stats-url: /admin?stats
           interfaces:
             input:
               db-name: configuration(string)
-              git-app-fork: configuration(string)
-              git-app-branch: configuration(string)
+              scm-provider: configuration(string)
+              app-fork: configuration(string)
+              app-branch: configuration(string)
               lb-bucket: configuration(string)
               app-quantity: configuration(string)
               #as constants
@@ -64,15 +56,14 @@ application:
               lbstats-stats-url: configuration(string)
             db-info:
               dbms: consume-signal(object)
-              db-host: consume-signal(string)
+              db-host: consume-signal(list<string>)
               db-port: consume-signal(string)
             db-manage:
               create-db: send-command(string db-name)
               change-grants: send-command(list<string> app-host, string db-name, string db-user, string db-password, list<string> privileges)
               run-sql: send-command(object db, list<string> sql-url)
             app-manage:
-              deploy-app: send-command(string git-app-fork, string git-app-branch)
-              configure-dbconnection: send-command(string db-host, string db-port, string db-name, string db-user, string db-password)
+              deploy-app: send-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
             app-output:
               app-host: consume-signal(list<string>)
               app-port: consume-signal(string)
@@ -82,7 +73,7 @@ application:
 
           required: [db-manage, app-manage, lb-manage]
           configuration:
-            input.db-sql-url: ["https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"] #const
+            input.db-sql-url: ["https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"] 
             input.db-user: petclinic #const
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
@@ -104,9 +95,9 @@ application:
                       description: user password for new database
                   - privileges: &privileges
                       description: user privileges for new database
-                  - git-app-fork: &git-app-fork
+                  - app-fork: &app-fork
                       description: git fork
-                  - git-app-branch: &git-app-branch
+                  - app-branch: &app-branch
                       description: git branch
                   - lbstats-stats-user: &lbstats-stats-user
                       description: lb statistic user
@@ -161,22 +152,15 @@ application:
                         service: app-manage
                         command: deploy-app
                         arguments:
-                           git-app-fork: "{$.git-app-fork}"
-                           git-app-branch: "{$.git-app-branch}"
-                  - configure-dbconnection:
-                      action: serviceCall
-                      precedingPhases: [ deploy-app, grant-db ]
-                      phase: configure-dbconnection
-                      parameters:
-                        service: app-manage
-                        command: configure-dbconnection
-                        arguments:
-                          db-host: "{$.props.db-output.db-host}"
-                          db-port: "{$.props.db-output.db-port}"
-                          db-name: "{$.db-name}"
-                          db-user: "{$.db-user}"
-                          #to do: change to db-pass here and in the mysql manifest
-                          db-password: "{$.db-password}"
+                           scm-provider: "git"
+                           app-fork: "{$.app-fork}"
+                           app-branch: "{$.app-branch}"
+                           db-host: "{$.props.db-info.db-host}"
+                           db-port: "{$.props.db-info.db-port}"
+                           db-name: "{$.db-name}"
+                           db-user: "{$.db-user}"
+                           #to do: change to db-pass here and in the mysql manifest
+                           db-password: "{$.db-password}"
                   - lb-add-server:
                       action: serviceCall
                       precedingPhases: [ configure-dbconnection ]
@@ -185,7 +169,8 @@ application:
                         service: lb-manage
                         command: add-server
                         arguments:
-                          app-server: "{$.props.app-output.app-host}:{$.props.app-output.app-port}"
+                          app-host: "{$.props.app-output.app-host}"
+                          app-port: "{$.props.app-output.app-port}"
                           lb-bucket: "http://roundrobin:80/"
                           #todo move lb-bucket to launch param
                 #todo: enpoint
@@ -206,7 +191,7 @@ application:
           change-grants: receive-command(list<string> app-host, string db-name, string db-user, string db-password, list<string> privileges)
         output:
           dbms: publish-signal(object)
-          db-host: publish-signal(string)
+          db-host: publish-signal(list<string>)
           db-port: publish-signal(string)
 
     app:
@@ -215,10 +200,9 @@ application:
         __locator.application-id: "52541baae4b0d1f365e542ef"
       interfaces:
         input:
-          app-quantity: configuration(string)
+          quantity: configuration(string)
         management:
-          deploy-app: receive-command(string git-app-fork, string git-app-branch)
-          configure-dbconnection: receive-command(string db-host, string db-port, string db-name, string db-user, string db-password) 
+          deploy-app: receive-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
         output:
           app-host: publish-signal(list<string>)
           app-port: publish-signal(string)
@@ -233,12 +217,8 @@ application:
           stats-pass: configuration(string)
           stats-port: configuration(string)
           stats-url: configuration(string)
-        management:
+        lb-management:
           add-server: receive-command(list<string> app-host, string app-port, string lb-bucket)
           del-server: receive-command(list<string> app-host, string app-port , string lb-bucket )
         output:
-          #lb-url: publish-signal(string)
-          #lb-host: publish-signal(string)
-          #stats-user: publish-signal(string)
-          #stats-pass: publish-signal(string)
           lb-stats: publish-signal(object)
