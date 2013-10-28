@@ -71,12 +71,13 @@ application:
               add-server: send-command(list<string> app-host, string app-port, string lb-bucket)
               del-server: send-command(list<string> app-host, string app-port , string lb-bucket)
 
-          required: [db-manage, app-manage, lb-manage]
+          required: [db-manage, app-manage, lb-manage, db-info, app-output]
           configuration:
             input.db-sql-url: ["https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"] 
             input.db-user: petclinic #const
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
+            input.scm-provider: git #const
             input.lbstats-stats-user: admin
             input.lbstats-stats-pass: pa55w0rd
             input.lbstats-stats-port: "1926"
@@ -116,6 +117,7 @@ application:
                   - create-db:
                       action: serviceCall
                       phase: create-db
+                      precedingPhases: [ get-env-props ]
                       parameters:
                         service: db-manage
                         command: create-db
@@ -148,6 +150,7 @@ application:
                   - deploy-app:
                       action: serviceCall
                       phase: deploy-app
+                      precedingPhases: [ get-env-props ]
                       parameters:
                         service: app-manage
                         command: deploy-app
@@ -162,7 +165,7 @@ application:
                            db-password: "{$.db-password}"
                   - lb-add-server:
                       action: serviceCall
-                      precedingPhases: [ configure-dbconnection ]
+                      precedingPhases: [ deploy-app ]
                       phase: lb-add-server
                       parameters:
                         service: lb-manage
