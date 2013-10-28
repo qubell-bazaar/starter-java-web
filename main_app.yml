@@ -61,7 +61,7 @@ application:
             db-manage:
               create-db: send-command(string db-name)
               change-grants: send-command(list<string> app-host, string db-name, string db-user, string db-password, list<string> privileges)
-              run-sql: send-command(object db, list<string> sql-url)
+              run-sql: send-command(string db-name, list<string> sql-url)
             app-manage:
               deploy-app: send-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
             app-output:
@@ -85,13 +85,13 @@ application:
             configuration.workflows:
               launch:
                 parameters:
-                  - db: &db-name
+                  - db-name: &db-name
                       description: primary db name
                   - db-sql-url: &db-sql-url
                       description: sql url
-                  - user: &db-user
+                  - db-user: &db-user
                       description: user for new database
-                  - password: &db-password
+                  - db-password: &db-password
                       description: user password for new database
                   - privileges: &privileges
                       description: user privileges for new database
@@ -152,14 +152,13 @@ application:
                         service: app-manage
                         command: deploy-app
                         arguments:
-                           scm-provider: "git"
+                           scm-provider: git
                            app-fork: "{$.app-fork}"
                            app-branch: "{$.app-branch}"
                            db-host: "{$.props.db-info.db-host}"
                            db-port: "{$.props.db-info.db-port}"
                            db-name: "{$.db-name}"
                            db-user: "{$.db-user}"
-                           #to do: change to db-pass here and in the mysql manifest
                            db-password: "{$.db-password}"
                   - lb-add-server:
                       action: serviceCall
