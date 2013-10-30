@@ -17,8 +17,8 @@ application:
       app-fork: "bind(main.workflow#input.app-fork)"
       app-branch: "bind(main.workflow#input.app-branch)"
       lb-bucket: "bind(main.workflow#input.lb-bucket)"
-      app-quantity: "bind(main.workflow#input.app-quantity)"
-    ui-output:
+      app-quantity: "bind(app#input.quantity)"
+    endpoints:
       lb: "bind(lb#output.lb-stats)"
       app: "bind(app#output.app-host)"
       db: "bind(db#output.dbms)"
@@ -44,7 +44,7 @@ application:
               app-fork: configuration(string)
               app-branch: configuration(string)
               lb-bucket: configuration(string)
-              app-quantity: configuration(string)
+              #app-quantity: configuration(string)
               #as constants
               db-sql-url: configuration(list<string>)
               db-user: configuration(string)
