@@ -82,7 +82,12 @@ application:
             input.lbstats-stats-pass: pa55w0rd
             input.lbstats-stats-port: "1926"
             input.lbstats-stats-url: /admin?stats
-            configuration.triggers: {}
+
+            configuration.triggers:
+              app-output.app-host: app-scale
+              input.app-fork: rebuild-app
+              input.app-branch: rebuild-app
+
             configuration.workflows:
               launch:
                 parameters:
@@ -176,13 +181,67 @@ application:
                           lb-bucket: "http://roundrobin:80/"
                           #todo move lb-bucket to launch param
                 #todo: enpoint
+              app-scale:
+                steps:
+                  - get-env-props:
+                      action: getEnvironmentProperties
+                      phase: get-env-props
+                      output:
+                        props: result
+                  - deploy-app:
+                      action: serviceCall
+                      phase: deploy-app
+                      precedingPhases: [ get-env-props ]
+                      parameters:
+                        service: app-manage
+                        command: deploy-app
+                        arguments:
+                          scm-provider: git
+                          app-fork: "{$.app-fork}"
+                          app-branch: "{$.app-branch}"
+                          db-host: "{$.props.db-info.db-host}"
+                          db-port: "{$.props.db-info.db-port}"
+                          db-name: "{$.db-name}"
+                          db-user: "{$.db-user}"
+                          db-password: "{$.db-password}"
+                  - lb-add-server:
+                      action: serviceCall
+                      precedingPhases: [ deploy-app ]
+                      phase: lb-add-server
+                      parameters:
+                        service: lb-manage
+                        command: add-server
+                        arguments:
+                          app-host: "{$.props.app-output.app-host}"
+                          app-port: "{$.props.app-output.app-port}"
+                          lb-bucket: "http://roundrobin:80/"
+
+              rebuild-app:
+                steps:
+                  - deploy-app:
+                      action: serviceCall
+                      phase: deploy-app
+                      precedingPhases: [ get-env-props ]
+                      parameters:
+                        service: app-manage
+                        command: deploy-app
+                        arguments:
+                           scm-provider: git
+                           app-fork: "{$.app-fork}"
+                           app-branch: "{$.app-branch}"
+                           db-host: "{$.props.db-info.db-host}"
+                           db-port: "{$.props.db-info.db-port}"
+                           db-name: "{$.db-name}"
+                           db-user: "{$.db-user}"
+                           db-password: "{$.db-password}"
+
               destroy:
                 steps: []
 
     db:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "524d3c35e4b0a49c99bce659"
+        __locator.application-id: "db"
       interfaces:
         input:
           db-version: configuration(string)
@@ -199,7 +258,7 @@ application:
     app:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "52541baae4b0d1f365e542ef"
+        __locator.application-id: "app"
       interfaces:
         input:
           quantity: configuration(string)
@@ -212,7 +271,7 @@ application:
     lb:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "52543586e4b0d1f365e5431b"
+        __locator.application-id: "lb"
       interfaces:
         input:
           stats-user: configuration(string)
