@@ -105,6 +105,8 @@ application:
                       description: user password for new database
                   - privileges: &privileges
                       description: user privileges for new database
+                  - scm-provider: &scm-provider
+                      description: "Source provider (Git or SVN)"
                   - app-fork: &app-fork
                       description: git fork
                   - app-branch: &app-branch
@@ -167,7 +169,7 @@ application:
                         service: app-manage
                         command: deploy-app
                         arguments:
-                           scm-provider: git
+                           scm-provider: "{$.scm-provider}"
                            app-fork: "{$.app-fork}"
                            app-branch: "{$.app-branch}"
                            db-host: "{$.props.db-info.db-host}"
@@ -200,6 +202,20 @@ application:
                       phase: get-env-props
                       output:
                         props: result
+                  - grant-db:
+                      action: serviceCall
+                      precedingPhases: [ get-env-props ]
+                      phase: grant-db
+                      parameters:
+                        timeout: 300
+                        service: db-manage
+                        command: change-grants
+                        arguments:
+                          app-hosts: "{$.props.app-output.app-hosts}"
+                          db-name: "{$.db-name}"
+                          db-user: "{$.db-user}"
+                          db-password: "{$.db-password}"
+                          privileges: "{$.privileges}"
                   - deploy-app:
                       action: serviceCall
                       phase: deploy-app
@@ -209,7 +225,7 @@ application:
                         service: app-manage
                         command: deploy-app
                         arguments:
-                          scm-provider: git
+                          scm-provider: "{$.scm-provider}"
                           app-fork: "{$.app-fork}"
                           app-branch: "{$.app-branch}"
                           db-host: "{$.props.db-info.db-host}"
@@ -241,7 +257,7 @@ application:
                         service: app-manage
                         command: deploy-app
                         arguments:
-                           scm-provider: git
+                           scm-provider: "{$.scm-provider}"
                            app-fork: "{$.app-fork}"
                            app-branch: "{$.app-branch}"
                            db-host: "{$.props.db-info.db-host}"
