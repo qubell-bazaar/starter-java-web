@@ -20,8 +20,9 @@ application:
       app-quantity: "bind(app#input.quantity)"
     endpoints:
       lb: "bind(lb#output.lb-stats)"
-      app: "bind(app#output.app-host)"
+      app: "bind(app#output.app-hosts)"
       db: "bind(db#output.dbms)"
+      entry: "bind(main.workflow#result.entry-url)"
 
   components:
     main:
@@ -60,16 +61,19 @@ application:
               db-port: consume-signal(string)
             db-manage:
               create-db: send-command(string db-name)
-              change-grants: send-command(list<string> app-host, string db-name, string db-user, string db-password, list<string> privileges)
+              change-grants: send-command(list<string> app-hosts, string db-name, string db-user, string db-password, list<string> privileges)
               run-sql: send-command(string db-name, list<string> sql-url)
             app-manage:
               deploy-app: send-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
             app-output:
-              app-host: consume-signal(list<string>)
+              app-hosts: consume-signal(list<string>)
               app-port: consume-signal(string)
             lb-manage:
-              add-server: send-command(list<string> app-host, string app-port, string lb-bucket)
-              del-server: send-command(list<string> app-host, string app-port , string lb-bucket)
+              add-servers: send-command(list<string> app-hosts, string app-port, string lb-bucket => string entry-url)
+              reconfigure-servers: send-command(list<string> app-hosts, string app-port, string lb-bucket)
+              #del-server: send-command(list<string> app-hosts, string app-port , string lb-bucket)
+            result:
+              entry-url: publish-signal(string)
 
           required: [db-manage, app-manage, lb-manage, db-info, app-output]
           configuration:
@@ -81,10 +85,10 @@ application:
             input.lbstats-stats-user: admin
             input.lbstats-stats-pass: pa55w0rd
             input.lbstats-stats-port: "1926"
-            input.lbstats-stats-url: /admin?stats
+            input.lbstats-stats-url: "/admin?stats"
 
             configuration.triggers:
-              app-output.app-host: app-scale
+              app-output.app-hosts: app-scale
               input.app-fork: rebuild-app
               input.app-branch: rebuild-app
 
@@ -124,6 +128,7 @@ application:
                       phase: create-db
                       precedingPhases: [ get-env-props ]
                       parameters:
+                        timeout: 300
                         service: db-manage
                         command: create-db
                         arguments:
@@ -133,11 +138,11 @@ application:
                       precedingPhases: [ create-db ]
                       phase: grant-db
                       parameters:
+                        timeout: 300
                         service: db-manage
                         command: change-grants
                         arguments:
-                          app-host: "{$.props.app-output.app-host}"
-                          #app-host: ["%"]
+                          app-hosts: "{$.props.app-output.app-hosts}"
                           db-name: "{$.db-name}"
                           db-user: "{$.db-user}"
                           db-password: "{$.db-password}"
@@ -147,6 +152,7 @@ application:
                       precedingPhases: [ grant-db ]
                       phase: run-sql
                       parameters:
+                        timeout: 300
                         service: db-manage
                         command: run-sql
                         arguments:
@@ -157,6 +163,7 @@ application:
                       phase: deploy-app
                       precedingPhases: [ get-env-props ]
                       parameters:
+                        timeout: 300
                         service: app-manage
                         command: deploy-app
                         arguments:
@@ -173,14 +180,19 @@ application:
                       precedingPhases: [ deploy-app ]
                       phase: lb-add-server
                       parameters:
+                        timeout: 300
                         service: lb-manage
-                        command: add-server
+                        command: add-servers
                         arguments:
-                          app-host: "{$.props.app-output.app-host}"
+                          app-hosts: "{$.props.app-output.app-hosts}"
                           app-port: "{$.props.app-output.app-port}"
                           lb-bucket: "http://roundrobin:80/"
+                      output:
+                        result-lb: result
                           #todo move lb-bucket to launch param
-                #todo: enpoint
+                return:
+                  entry-url:
+                    value: "{$.result-lb.entry-url}"
               app-scale:
                 steps:
                   - get-env-props:
@@ -193,6 +205,7 @@ application:
                       phase: deploy-app
                       precedingPhases: [ get-env-props ]
                       parameters:
+                        timeout: 600
                         service: app-manage
                         command: deploy-app
                         arguments:
@@ -204,15 +217,16 @@ application:
                           db-name: "{$.db-name}"
                           db-user: "{$.db-user}"
                           db-password: "{$.db-password}"
-                  - lb-add-server:
+                  - lb-reconfigure-servers:
                       action: serviceCall
                       precedingPhases: [ deploy-app ]
-                      phase: lb-add-server
+                      phase: lb-reconfigure-servers
                       parameters:
+                        timeout: 600
                         service: lb-manage
-                        command: add-server
+                        command: reconfigure-servers
                         arguments:
-                          app-host: "{$.props.app-output.app-host}"
+                          app-hosts: "{$.props.app-output.app-hosts}"
                           app-port: "{$.props.app-output.app-port}"
                           lb-bucket: "http://roundrobin:80/"
 
@@ -223,6 +237,7 @@ application:
                       phase: deploy-app
                       precedingPhases: [ get-env-props ]
                       parameters:
+                        timeout: 600
                         service: app-manage
                         command: deploy-app
                         arguments:
@@ -249,7 +264,7 @@ application:
         management:
           create-db: receive-command(string db-name)
           run-sql: receive-command(string db-name, list<string> sql-url)
-          change-grants: receive-command(list<string> app-host, string db-name, string db-user, string db-password, list<string> privileges)
+          change-grants: receive-command(list<string> app-hosts, string db-name, string db-user, string db-password, list<string> privileges)
         output:
           dbms: publish-signal(object)
           db-host: publish-signal(list<string>)
@@ -265,7 +280,7 @@ application:
         management:
           deploy-app: receive-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
         output:
-          app-host: publish-signal(list<string>)
+          app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
 
     lb:
@@ -278,8 +293,9 @@ application:
           stats-pass: configuration(string)
           stats-port: configuration(string)
           stats-url: configuration(string)
-        lb-management:
-          add-server: receive-command(list<string> app-host, string app-port, string lb-bucket)
-          del-server: receive-command(list<string> app-host, string app-port , string lb-bucket )
+        lb-manage:
+          add-servers: receive-command(list<string> app-hosts, string app-port, string lb-bucket => string entry-url)
+          reconfigure-servers: receive-command(list<string> app-hosts, string app-port, string lb-bucket)
+          #del-server: receive-command(list<string> app-hosts, string app-port , string lb-bucket )
         output:
           lb-stats: publish-signal(object)
