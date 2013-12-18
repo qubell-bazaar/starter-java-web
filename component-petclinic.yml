@@ -64,7 +64,7 @@ application:
               change-grants: send-command(list<string> app-hosts, string db-name, string db-user, string db-password, list<string> privileges)
               run-sql: send-command(string db-name, list<string> sql-url)
             app-manage:
-              deploy-app: send-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
+              deploy-app: send-command(string scm-provider, string git-uri, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
             app-output:
               app-hosts: consume-signal(list<string>)
               app-port: consume-signal(string)
@@ -77,7 +77,7 @@ application:
 
           required: [db-manage, app-manage, lb-manage, db-info, app-output]
           configuration:
-            input.db-sql-url: ["https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell/starter-java-web/master/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"] 
+            input.db-sql-url: ["https://raw.github.com/qubell-bazaar/component-petclinic/sql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell-bazaar/component-petclinic/sql/petclinic-mysql-dataload.sql"]
             input.db-user: petclinic #const
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
@@ -170,7 +170,7 @@ application:
                         command: deploy-app
                         arguments:
                            scm-provider: "{$.scm-provider}"
-                           app-fork: "{$.app-fork}"
+                           git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                            app-branch: "{$.app-branch}"
                            db-host: "{$.props.db-info.db-host}"
                            db-port: "{$.props.db-info.db-port}"
@@ -226,7 +226,7 @@ application:
                         command: deploy-app
                         arguments:
                           scm-provider: "{$.scm-provider}"
-                          app-fork: "{$.app-fork}"
+                          git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                           app-branch: "{$.app-branch}"
                           db-host: "{$.props.db-info.db-host}"
                           db-port: "{$.props.db-info.db-port}"
@@ -258,7 +258,7 @@ application:
                         command: deploy-app
                         arguments:
                            scm-provider: "{$.scm-provider}"
-                           app-fork: "{$.app-fork}"
+                           git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                            app-branch: "{$.app-branch}"
                            db-host: "{$.props.db-info.db-host}"
                            db-port: "{$.props.db-info.db-port}"
@@ -294,7 +294,7 @@ application:
         input:
           quantity: configuration(string)
         management:
-          deploy-app: receive-command(string scm-provider, string app-fork, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
+          deploy-app: receive-command(string scm-provider, string git-uri, string app-branch, list<string> db-host, string db-port, string db-name, string db-user, string db-password)
         output:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
@@ -312,6 +312,5 @@ application:
         lb-manage:
           add-servers: receive-command(list<string> app-hosts, string app-port, string lb-bucket => string entry-url)
           reconfigure-servers: receive-command(list<string> app-hosts, string app-port, string lb-bucket)
-          #del-server: receive-command(list<string> app-hosts, string app-port , string lb-bucket )
         output:
           lb-stats: publish-signal(object)
