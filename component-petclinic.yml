@@ -77,7 +77,7 @@ application:
 
           required: [db-manage, app-manage, lb-manage, db-info, app-output]
           configuration:
-            input.db-sql-url: ["https://raw.github.com/qubell-bazaar/component-petclinic/sql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell-bazaar/component-petclinic/sql/petclinic-mysql-dataload.sql"]
+            input.db-sql-url: ["https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-dataload.sql"]
             input.db-user: petclinic #const
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
