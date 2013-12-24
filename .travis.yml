@@ -1,0 +1,18 @@
+env:
+ global:
+    - "QUBELL_TENANT=https://express.qubell.com"
+    ## fill environment variables:
+    ## QUBELL_USER, QUBELL_PASS, QUBELL_TENANT, PROVIDER_NAME, PROVIDER_TYPE, PROVIDER_IDENTITY, PROVIDER_CREDENTIAL, PROVIDER_REGION
+    ## ARTIFACTS_AWS_REGION, ARTIFACTS_S3_BUCKET, ARTIFACTS_AWS_ACCESS_KEY_ID, ARTIFACTS_AWS_SECRET_ACCESS_KEY
+
+language: python
+python:
+  - "2.7"
+
+install: "pip install -r test/requirements.txt"
+
+before_script:
+   - gem install travis-artifacts --no-ri --no-rdoc
+   - git submodule update --init --recursive
+
+script: ./build.sh

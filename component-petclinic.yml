@@ -37,7 +37,6 @@ application:
               execute-command: send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
         workflow:
           type: workflow.Instance
-          #todo: think on env properties
           interfaces:
             input:
               db-name: configuration(string)
@@ -45,8 +44,6 @@ application:
               app-fork: configuration(string)
               app-branch: configuration(string)
               lb-bucket: configuration(string)
-              #app-quantity: configuration(string)
-              #as constants
               db-sql-url: configuration(list<string>)
               db-user: configuration(string)
               db-password: configuration(string)
@@ -71,7 +68,6 @@ application:
             lb-manage:
               add-servers: send-command(list<string> app-hosts, string app-port, string lb-bucket => string entry-url)
               reconfigure-servers: send-command(list<string> app-hosts, string app-port, string lb-bucket)
-              #del-server: send-command(list<string> app-hosts, string app-port , string lb-bucket)
             result:
               entry-url: publish-signal(string)
 
