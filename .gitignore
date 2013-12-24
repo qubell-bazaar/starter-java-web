@@ -1,0 +1,8 @@
+# Idea project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Python files
+*.pyc

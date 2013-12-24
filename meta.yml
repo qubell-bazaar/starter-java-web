@@ -1,0 +1,21 @@
+kit:
+  name: "PetClinic"
+  link: https://github.com/qubell/starter-java-web
+  applications:
+    - name: PetClinic
+      manifest: https://raw.github.com/qubell-bazaar/component-petclinic/master/component-petclinic.yml
+    - name: db
+      manifest: https://raw.github.com/qubell-bazaar/component-mysql-dev/master/component-mysql-dev.yml
+    - name: lb
+      manifest: https://raw.github.com/qubell-bazaar/component-haproxy/master/component-haproxy.yml
+    - name: app
+      manifest: https://raw.github.com/qubell-bazaar/component-tomcat-dev/master/component-tomcat-dev.yml
+  provider:
+    name: "Qubell"
+    link: http://qubell.com
+  documentation:
+    overview: |
+      This application requires the following items to be configured in your environment:
+        * Amazon EC2 or Rackspace CloudServers account;
+        * Ports 80 and 8080 open on the ﬁrewall.
+      Please refer to the Getting Started for step-by-step instructions on how to configure your environment.
