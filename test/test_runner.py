@@ -52,6 +52,6 @@ class BaseComponentTestCase(BaseTestCase):
 
 if __name__ == '__main__':
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     unittest.main(argv=["qubell-test-runner", "discover", "--pattern=test*.py"])
