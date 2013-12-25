@@ -13,10 +13,10 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import sys
+import logging
 import os
 import unittest
+
 from qubell.api.private.platform import QubellPlatform, Context
 from qubell.api.private.testing import BaseTestCase
 
@@ -51,4 +51,7 @@ class BaseComponentTestCase(BaseTestCase):
         return base_env
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
     unittest.main(argv=["qubell-test-runner", "discover", "--pattern=test*.py"])
