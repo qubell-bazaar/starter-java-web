@@ -49,7 +49,7 @@ application:
               db-user: configuration(string)
               db-password: configuration(string)
               privileges: configuration(list<string>)
-              lib-uri: configuration(string)
+              lib-uri: configuration(list<string>)
               war-uri: configuration(string)
               lbstats-stats-user: configuration(string)
               lbstats-stats-pass: configuration(string)
@@ -65,7 +65,7 @@ application:
               run-sql: send-command(string db-name, list<string> sql-url)
             app-manage:
               build-app: send-command(string scm-provider, string git-uri, string app-branch)
-              deploy-libs: send-command(string lib-uri)
+              deploy-libs: send-command(list<string> lib-uri)
               deploy-war: send-command(string war-uri, object environments, object resources)
             app-output:
               app-hosts: consume-signal(list<string>)
@@ -83,7 +83,7 @@ application:
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
             input.scm-provider: git #const
-            input.lib-uri: "https://dl.dropboxusercontent.com/u/250836/tomcat-mysql-libs.tar.gz"
+            input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar"]
             input.war-uri: "file:///tmp/ROOT.war"
             input.lbstats-stats-user: admin
             input.lbstats-stats-pass: pa55w0rd
@@ -94,6 +94,8 @@ application:
               app-output.app-hosts: app-scale
               input.app-fork: rebuild-app
               input.app-branch: rebuild-app
+
+            configuration.propagateStatus: [ app-scale, rebuild-app ]
 
             configuration.workflows:
               launch:
@@ -398,7 +400,7 @@ application:
           quantity: configuration(string)
         management:
           build-app: receive-command(string scm-provider, string git-uri, string app-branch)
-          deploy-libs: receive-command(string lib-uri)
+          deploy-libs: receive-command(list<string> lib-uri)
           deploy-war: receive-command(string war-uri, object environments, object resources)
         output:
           app-hosts: publish-signal(list<string>)
