@@ -174,7 +174,7 @@ application:
                       phase: build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 300
+                        timeout: 600
                         service: app-manage
                         command: build-app
                         arguments:
@@ -263,7 +263,7 @@ application:
                       phase: build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 300
+                        timeout: 600
                         service: app-manage
                         command: build-app
                         arguments:
@@ -327,7 +327,7 @@ application:
                       phase: build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 300
+                        timeout: 600
                         service: app-manage
                         command: build-app
                         arguments:
