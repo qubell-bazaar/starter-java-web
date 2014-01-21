@@ -216,7 +216,7 @@ application:
                                 "type": "java.lang.String",
                                 "override": "false"
                             }
-                            - Resources: {
+                            - Resource: {
                                 "name": "jdbc/datasource",
                                 "auth": "Container",
                                 "type": "javax.sql.DataSource",
@@ -318,7 +318,7 @@ application:
                                 "type": "java.lang.String",
                                 "override": "false"
                             }
-                            - Resources: {
+                            - Resource: {
                                 "name": "jdbc/datasource",
                                 "auth": "Container",
                                 "type": "javax.sql.DataSource",
@@ -395,7 +395,7 @@ application:
                                 "type": "java.lang.String",
                                 "override": "false"
                             }
-                            - Resources: {
+                            - Resource: {
                                 "name": "jdbc/datasource",
                                 "auth": "Container",
                                 "type": "javax.sql.DataSource",
