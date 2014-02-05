@@ -38,20 +38,17 @@ function replace {
 
 function publish_github {
     GIT_URL=$(git config remote.origin.url)
-    NEW_GIT_URL=$(echo $GIT_URL | sed -e 's/^git:/https:/g')
+    NEW_GIT_URL=$(echo $GIT_URL | sed -e 's/^git:/https:/g' | sed -e 's/^https:\/\//https:\/\/'${GH_TOKEN}':@/')
 
-    git remote set-url --push origin $NEW_GIT_URL
-    git remote set-branches --add origin master
+    git remote rm origin
+    git remote add origin ${NEW_GIT_URL}
     git fetch -q
     git config user.name ${GIT_NAME}
     git config user.email ${GIT_EMAIL}
-    git config credential.helper "store --file=.git/credentials"
-    echo "https://${GH_TOKEN}:@github.com" > .git/credentials
     rm -rf *.tar.gz
     git commit -a -m "CI: Success build ${TRAVIS_BUILD_NUMBER}"
     git checkout -b build
-    git push origin build:master
-    rm -rf .git/credentials
+    git push -q origin build:master
 }
 
 if [[ ${TRAVIS_PULL_REQUEST} == "false" ]]; then

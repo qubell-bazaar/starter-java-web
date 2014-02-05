@@ -5,13 +5,13 @@ env:
   - QUBELL_TENANT=https://express.qubell.com
   - PROVIDER_TYPE=aws-ec2
   - PROVIDER_REGION=us-east-1
-  - secure: PnYrOUPpl1SoVqmJgS1wOrw3/0wDaZNOVM2zDzFXXGwkxzxh8sZifzYep4GIYmgV5Wgw6WvK0nMwsopNvaikh12Y1ejThe5OcZzTQKmzFd1JsuM0yfXIMNNUWgAZcVOAREJM9p9cmw7gr7ddNRAXeX+T/OfpVYGS12O5Y5jB/DU=
   - secure: S4LbooDWPz35xOLdevpuYWyNkKd+AdAmalIDD3BJ2lwX7AsLoTFZDi1jYxe8jviC1FDmRYede1xUsc8HJNYc/gCY7uI+614Rs4z2IgSlXExDZVPSv423q3IE0iw8/9B+SHldMe0nrKhxUSHPnrqLR6+j66+Z7quLOxKmeAmZQOc=
   - secure: bI9GfxoD8rnEy6pUWMZtkS77d/vLLUSIUGGJVvMoozyVuoZC5dAkilGhiHNbmIxqHWC4WvW7RDjui5MirTVHMEiGteATdg7JUcxVzFn9zhVNdKZmPptA2ihkm3D//85tyb+rRPFNX9zilUcm0RRejkq3on1n9EwKVHJcORGhMgU=
   - secure: esTF6hT2cJAVqWK1okIJ35uEq4q3jcJrgyr4vXfyLrVB2IGh1TZKdisQ7mJFpEJMP2F1gBuy/sIIr9NvoqxPKy7XqZ15j1tkluqPb7dejVm8kla73owAvctMxUny0mrMSGdQe399PB1162Xc+XL/a33jK8YCUYfnJPde31uFNEg=
   - secure: gj8n4rFsiY5NdgJBdBNBG2JcBvEcR4XR1L/f5ba4rhP2zTrHDh4sg1DzCTCz9BsfGOLQWBdVwUdZH4yzIem/X6EAQekRZ7vaaoC3wmt1/tO7qYABNUnR9PzG9TISTfUa+skqiXPkAYpPNRLxai1iWyyPk1tVCgLD5GFXygYLqjU=
   - secure: dO39X6pnNLp8lXA0k4kpR+3dp/DsHxShlYohbz1cImmPPUahIHHQxUkYuPmXi8vqFZEXuTRnvmpWwGYb4HeSWcVFQ1Bs2nJPi/eUQiPXOIE4qsX3nxfs2e1YV6g0WhIeD4HZkTc+uXXfZ8XWT3GeyI7BCGUKbzQteq8BtTVhc7g=
   - secure: Qx4PBUHe+wPtVEf5w8hG0PvbCrY2oPg4j06YXUamVV91hNeu6cFICP0f4kiC5ajsp2AXPrPZhV1kbkkTZWGnErP5vFnt7fkmgP3hBQD8AB45mCCfhjuUveYgq4Z9cezNXtMyFuxrdgH93n/mRkpWfg4mj9UMP/fGyjcEz6ENTFQ=
+  - secure: Y1mIYbRaFeukKXxTsG5k+Ohhjkq+3G9nw3WfOvZ7ctg+81VkoEj6Jh75PMaDykd1PpWvKCG/zTaxd+zQZzd+BhYdC97V6AQvW2GIbgFmfaDG2AmIW+YPCMGDMImf/CMcopqiIuCsxRpLr812fqTTYl2gjfxy4c5dYl39fFA5O/o=
 language: python
 python:
 - '2.7'

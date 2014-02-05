@@ -268,7 +268,7 @@ application:
     db:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "db"
+        __locator.application-id: "Database"
       interfaces:
         input:
           db-version: configuration(string)
@@ -285,7 +285,7 @@ application:
     app:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "app"
+        __locator.application-id: "Application Sever"
       interfaces:
         input:
           quantity: configuration(string)
@@ -298,7 +298,7 @@ application:
     lb:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "lb"
+        __locator.application-id: "Load Balancer"
       interfaces:
         input:
           stats-user: configuration(string)

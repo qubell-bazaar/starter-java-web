@@ -4,11 +4,11 @@ kit:
   applications:
     - name: PetClinic
       manifest: https://raw.github.com/qubell-bazaar/component-petclinic/master/component-petclinic.yml
-    - name: db
+    - name: "Database"
       manifest: https://raw.github.com/qubell-bazaar/component-mysql-dev/master/component-mysql-dev.yml
-    - name: lb
+    - name: "Load Balancer"
       manifest: https://raw.github.com/qubell-bazaar/component-haproxy/master/component-haproxy.yml
-    - name: app
+    - name: "Application Server"
       manifest: https://raw.github.com/qubell-bazaar/component-tomcat-dev/master/component-tomcat-dev.yml
   provider:
     name: "Qubell"
