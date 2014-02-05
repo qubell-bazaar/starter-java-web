@@ -66,7 +66,7 @@ application:
             app-manage:
               build-app: send-command(string scm-provider, string git-uri, string app-branch)
               deploy-libs: send-command(list<string> lib-uri)
-              deploy-war: send-command(string war-uri, object environments, object resources)
+              deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
             app-output:
               app-hosts: consume-signal(list<string>)
               app-port: consume-signal(string)
@@ -201,23 +201,36 @@ application:
                         command: deploy-war
                         arguments:
                           war-uri: "{$.war-uri}"
-                          environments: {}
-                          resources: {
-                            "jdbc/datasource": {
-                              "auth": "Container",
-                              "type": "javax.sql.DataSource",
-                              "maxActive": "8",
-                              "maxIdle": "8",
-                              "maxWait": "-1",
-                              "username": "{$.db-user}",
-                              "password": "{$.db-password}",
-                              "driverClassName": "com.mysql.jdbc.Driver",
-                              "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
-                              "validationQuery": "select 1",
-                              "testOnReturn": "true",
-                              "testWhileIdle": "true"
-                            }
+                          context-attrs: {
+                            "docBase": "{$.war-uri}",
+                            "path": "/",
+                            "debug": "5",
+                            "reloadable": "true",
+                            "crossContext": "true",
+                            "allowLinking": "true"
                           }
+                          context-nodes:
+                            - Environments: {
+                                "name": "appEnvironment",
+                                "value": "_default",
+                                "type": "java.lang.String",
+                                "override": "false"
+                            }
+                            - Resource: {
+                                "name": "jdbc/datasource",
+                                "auth": "Container",
+                                "type": "javax.sql.DataSource",
+                                "maxActive": "8",
+                                "maxIdle": "8",
+                                "maxWait": "-1",
+                                "username": "{$.db-user}",
+                                "password": "{$.db-password}",
+                                "driverClassName": "com.mysql.jdbc.Driver",
+                                "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
+                                "validationQuery": "select 1",
+                                "testOnReturn": "true",
+                                "testWhileIdle": "true"
+                            }
 
                   - lb-add-server:
                       action: serviceCall
@@ -290,23 +303,36 @@ application:
                         command: deploy-war
                         arguments:
                           war-uri: "{$.war-uri}"
-                          environments: {}
-                          resources: {
-                            "jdbc/datasource": {
-                              "auth": "Container",
-                              "type": "javax.sql.DataSource",
-                              "maxActive": "8",
-                              "maxIdle": "8",
-                              "maxWait": "-1",
-                              "username": "{$.db-user}",
-                              "password": "{$.db-password}",
-                              "driverClassName": "com.mysql.jdbc.Driver",
-                              "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
-                              "validationQuery": "select 1",
-                              "testOnReturn": "true",
-                              "testWhileIdle": "true"
-                            }
+                          context-attrs: {
+                            "docBase": "{$.war-uri}",
+                            "path": "/",
+                            "debug": "5",
+                            "reloadable": "true",
+                            "crossContext": "true",
+                            "allowLinking": "true"
                           }
+                          context-nodes:
+                            - Environments: {
+                                "name": "appEnvironment",
+                                "value": "_default",
+                                "type": "java.lang.String",
+                                "override": "false"
+                            }
+                            - Resource: {
+                                "name": "jdbc/datasource",
+                                "auth": "Container",
+                                "type": "javax.sql.DataSource",
+                                "maxActive": "8",
+                                "maxIdle": "8",
+                                "maxWait": "-1",
+                                "username": "{$.db-user}",
+                                "password": "{$.db-password}",
+                                "driverClassName": "com.mysql.jdbc.Driver",
+                                "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
+                                "validationQuery": "select 1",
+                                "testOnReturn": "true",
+                                "testWhileIdle": "true"
+                            }
                   - lb-reconfigure-servers:
                       action: serviceCall
                       precedingPhases: [ deploy-war ]
@@ -354,23 +380,36 @@ application:
                         command: deploy-war
                         arguments:
                           war-uri: "{$.war-uri}"
-                          environments: {}
-                          resources: {
-                            "jdbc/datasource": {
-                              "auth": "Container",
-                              "type": "javax.sql.DataSource",
-                              "maxActive": "8",
-                              "maxIdle": "8",
-                              "maxWait": "-1",
-                              "username": "{$.db-user}",
-                              "password": "{$.db-password}",
-                              "driverClassName": "com.mysql.jdbc.Driver",
-                              "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
-                              "validationQuery": "select 1",
-                              "testOnReturn": "true",
-                              "testWhileIdle": "true"
-                            }
+                          context-attrs: {
+                            "docBase": "{$.war-uri}",
+                            "path": "/",
+                            "debug": "5",
+                            "reloadable": "true",
+                            "crossContext": "true",
+                            "allowLinking": "true"
                           }
+                          context-nodes:
+                            - Environments: {
+                                "name": "appEnvironment",
+                                "value": "_default",
+                                "type": "java.lang.String",
+                                "override": "false"
+                            }
+                            - Resource: {
+                                "name": "jdbc/datasource",
+                                "auth": "Container",
+                                "type": "javax.sql.DataSource",
+                                "maxActive": "8",
+                                "maxIdle": "8",
+                                "maxWait": "-1",
+                                "username": "{$.db-user}",
+                                "password": "{$.db-password}",
+                                "driverClassName": "com.mysql.jdbc.Driver",
+                                "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
+                                "validationQuery": "select 1",
+                                "testOnReturn": "true",
+                                "testWhileIdle": "true"
+                            }
               destroy:
                 steps: []
 
@@ -401,7 +440,7 @@ application:
         management:
           build-app: receive-command(string scm-provider, string git-uri, string app-branch)
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string war-uri, object environments, object resources)
+          deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
         output:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
