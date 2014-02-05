@@ -59,15 +59,15 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
         "name": name,
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
     }, {
-        "name": "db",
+        "name": "Database",
         "url": "https://raw.github.com/qubell-bazaar/component-mysql-dev/master/component-mysql-dev.yml",
         "launch": False
     }, {
-        "name": "lb",
+        "name": "Load Balancer",
         "url": "https://raw.github.com/qubell-bazaar/component-haproxy/master/component-haproxy.yml",
         "launch": False
     }, {
-        "name": "app",
+        "name": "Application Server",
         "url": "https://raw.github.com/qubell-bazaar/component-tomcat-dev/master/component-tomcat-dev.yml",
         "launch": False
     }]
