@@ -184,7 +184,7 @@ application:
                   - deploy-libs:
                       action: serviceCall
                       phase: deploy-libs
-                      precedingPhases: [ get-env-props ]
+                      precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
                         service: app-manage
@@ -286,7 +286,7 @@ application:
                   - deploy-libs:
                       action: serviceCall
                       phase: deploy-libs
-                      precedingPhases: [ get-env-props ]
+                      precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
                         service: app-manage
@@ -368,7 +368,7 @@ application:
                   - deploy-libs:
                       action: serviceCall
                       phase: deploy-libs
-                      precedingPhases: [ get-env-props ]
+                      precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
                         service: app-manage
