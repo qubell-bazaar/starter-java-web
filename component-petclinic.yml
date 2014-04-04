@@ -348,6 +348,11 @@ application:
 
               rebuild-app:
                 steps:
+                  - get-env-props:
+                      action: getEnvironmentProperties
+                      phase: get-env-props
+                      output:
+                        props: result
                   - build-app:
                       action: serviceCall
                       phase: build-app
