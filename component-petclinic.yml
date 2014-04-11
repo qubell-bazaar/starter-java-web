@@ -26,15 +26,7 @@ application:
 
   components:
     main:
-      bindings:
-        - [wfService, workflow]
       components:
-        wfService:
-          type: reference.Service
-          interfaces:
-            executor:
-              execute-workflow: receive-command(object request => object status => object status)
-              execute-command: send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
         workflow:
           type: workflow.Instance
           interfaces:
