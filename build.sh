@@ -46,7 +46,7 @@ function publish_github {
     git config user.name ${GIT_NAME}
     git config user.email ${GIT_EMAIL}
     rm -rf *.tar.gz
-    git commit -a -m "CI: Success build ${TRAVIS_BUILD_NUMBER}"
+    git commit -a -m "CI: Success build ${TRAVIS_BUILD_NUMBER} [ci skip]"
     git checkout -b build
     git push -q origin build:master
 }
