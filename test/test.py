@@ -54,7 +54,7 @@ from test_runner import BaseComponentTestCase
     }
 })
 class PetClinicComponentTestCase(BaseComponentTestCase):
-    name = "component-petclinic"
+    name = "starter-java-web"
     apps = [{
         "name": name,
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
