@@ -1,6 +1,5 @@
 application:
   configuration:
-    input.db-name: petclinic
     input.lb-bucket: http://roundrobin:80
     input.app-fork: qubell
     input.app-branch: HEAD #red, master
@@ -13,7 +12,6 @@ application:
 
   interfaces:
     input:
-      db-name: "bind(main.workflow#input.db-name)"
       app-fork: "bind(main.workflow#input.app-fork)"
       app-branch: "bind(main.workflow#input.app-branch)"
       lb-bucket: "bind(main.workflow#input.lb-bucket)"
@@ -31,7 +29,6 @@ application:
           type: workflow.Instance
           interfaces:
             input:
-              db-name: configuration(string)
               scm-provider: configuration(string)
               app-fork: configuration(string)
               app-branch: configuration(string)
@@ -49,12 +46,11 @@ application:
               lbstats-stats-url: configuration(string)
             db-info:
               dbms: consume-signal(object)
-              db-host: consume-signal(list<string>)
-              db-port: consume-signal(string)
+              db-host: consume-signal(string)
+              db-port: consume-signal(int)
             db-manage:
-              create-db: send-command(string db-name)
-              change-grants: send-command(list<string> app-hosts, string db-name, string db-user, string db-password, list<string> privileges)
-              run-sql: send-command(string db-name, list<string> sql-url)
+              schema: send-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+              file-query: send-command(object connection, list<string> sql-url)
             app-manage:
               build-app: send-command(string scm-provider, string git-uri, string app-branch)
               deploy-libs: send-command(list<string> lib-uri)
@@ -70,12 +66,15 @@ application:
 
           required: [db-manage, app-manage, lb-manage, db-info, app-output]
           configuration:
+            #Oracle
+            #input.db-sql-url: ["https://dl.dropboxusercontent.com/u/250836/petclinic-oracle-schema.sql", "https://dl.dropboxusercontent.com/u/250836/petclinic-oracle-dataload.sql"]
+            #MySQL
             input.db-sql-url: ["https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-dataload.sql"]
             input.db-user: petclinic #const
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
             input.scm-provider: git #const
-            input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar"]
+            input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://dl.dropboxusercontent.com/u/250836/ojdbc6.jar"]
             input.war-uri: "file:///tmp/ROOT.war"
             input.lbstats-stats-user: admin
             input.lbstats-stats-pass: pa55w0rd
@@ -92,78 +91,63 @@ application:
             configuration.workflows:
               launch:
                 parameters:
-                  - db-name: &db-name
-                      description: primary db name
-                  - db-sql-url: &db-sql-url
-                      description: sql url
-                  - db-user: &db-user
+                  - db-user:
                       description: user for new database
-                  - db-password: &db-password
+                  - db-password:
                       description: user password for new database
-                  - privileges: &privileges
+                  - privileges:
                       description: user privileges for new database
-                  - scm-provider: &scm-provider
+                  - db-sql-url:
+                      description: sql url
+                  - scm-provider:
                       description: "Source provider (Git or SVN)"
-                  - app-fork: &app-fork
+                  - app-fork:
                       description: git fork
-                  - app-branch: &app-branch
+                  - app-branch:
                       description: git branch
-                  - lib-uri: &lib-uri
+                  - lib-uri:
                       description: URI to additional app libs
-                  - war-uri: &war-uri
+                  - war-uri:
                       description: URI to app 
-                  - lbstats-stats-user: &lbstats-stats-user
+                  - lbstats-stats-user:
                       description: lb statistic user
-                  - lbstats-stats-pass: &lbstats-stats-pass
+                  - lbstats-stats-pass:
                       description: lb statistic user's password 
-                  - lbstats-stats-port: &lbstats-stats-port
+                  - lbstats-stats-port:
                       description: lb statistic port
-                  - lbstats-stats-url: &lbstats-stats-url
+                  - lbstats-stats-url:
                       description: lb statistic's url
                 steps:
                   - get-env-props:
                       action: getEnvironmentProperties
                       phase: get-env-props
                       output:
-                        props: result 
-                  - create-db:
+                        props: result
+                  - manage-schema:
                       action: serviceCall
-                      phase: create-db
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 300
                         service: db-manage
-                        command: create-db
+                        command: schema
                         arguments:
-                          db-name: "{$.db-name}"
-                  - grant-db:
-                      action: serviceCall
-                      precedingPhases: [ create-db ]
-                      phase: grant-db
-                      parameters:
-                        timeout: 300
-                        service: db-manage
-                        command: change-grants
-                        arguments:
-                          app-hosts: "{$.props.app-output.app-hosts}"
-                          db-name: "{$.db-name}"
                           db-user: "{$.db-user}"
-                          db-password: "{$.db-password}"
-                          privileges: "{$.privileges}"
-                  - run-sql:
+                          db-user-password: "{$.db-password}"
+                          db-user-privileges: "{$.privileges}"
+                      output:
+                        con: result
+                  - upload-sql:
                       action: serviceCall
-                      precedingPhases: [ grant-db ]
-                      phase: run-sql
+                      precedingPhases: [ manage-schema ]
                       parameters:
                         timeout: 300
                         service: db-manage
-                        command: run-sql
+                        command: file-query
                         arguments:
-                          db-name: "{$.db-name}"
+                          connection: "{$.con.connection}"
                           sql-url: "{$.db-sql-url}"
                   - build-app:
                       action: serviceCall
-                      phase: build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 600
@@ -175,7 +159,6 @@ application:
                           app-branch: "{$.app-branch}"
                   - deploy-libs:
                       action: serviceCall
-                      phase: deploy-libs
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 300
@@ -186,7 +169,7 @@ application:
                   - deploy-war:
                       action: serviceCall
                       phase: deploy-war
-                      precedingPhases: [ build-app, deploy-libs ]
+                      precedingPhases: [ upload-sql, build-app, deploy-libs ]
                       parameters:
                         timeout: 300
                         service: app-manage
@@ -211,15 +194,15 @@ application:
                             - Resource: {
                                 "name": "jdbc/datasource",
                                 "auth": "Container",
-                                "type": "javax.sql.DataSource",
+                                "type": "{$.con.connection.db-dstype}",
                                 "maxActive": "8",
                                 "maxIdle": "8",
                                 "maxWait": "-1",
-                                "username": "{$.db-user}",
-                                "password": "{$.db-password}",
-                                "driverClassName": "com.mysql.jdbc.Driver",
-                                "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
-                                "validationQuery": "select 1",
+                                "username": "{$.con.connection.db-user}",
+                                "password": "{$.con.connection.db-user-password}",
+                                "driverClassName": "{$.con.connection.db-driver}",
+                                "url": "{$.con.connection.connection-url}",
+                                "validationQuery": "{$.con.connection.validation-query}",
                                 "testOnReturn": "true",
                                 "testWhileIdle": "true"
                             }
@@ -249,23 +232,8 @@ application:
                       phase: get-env-props
                       output:
                         props: result
-                  - grant-db:
-                      action: serviceCall
-                      precedingPhases: [ get-env-props ]
-                      phase: grant-db
-                      parameters:
-                        timeout: 300
-                        service: db-manage
-                        command: change-grants
-                        arguments:
-                          app-hosts: "{$.props.app-output.app-hosts}"
-                          db-name: "{$.db-name}"
-                          db-user: "{$.db-user}"
-                          db-password: "{$.db-password}"
-                          privileges: "{$.privileges}"
                   - build-app:
                       action: serviceCall
-                      phase: build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 600
@@ -277,7 +245,6 @@ application:
                           app-branch: "{$.app-branch}"
                   - deploy-libs:
                       action: serviceCall
-                      phase: deploy-libs
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 300
@@ -287,7 +254,6 @@ application:
                           lib-uri: "{$.lib-uri}"
                   - deploy-war:
                       action: serviceCall
-                      phase: deploy-war
                       precedingPhases: [ build-app, deploy-libs ]
                       parameters:
                         timeout: 300
@@ -313,15 +279,15 @@ application:
                             - Resource: {
                                 "name": "jdbc/datasource",
                                 "auth": "Container",
-                                "type": "javax.sql.DataSource",
+                                "type": "{$.con.connection.db-dstype}",
                                 "maxActive": "8",
                                 "maxIdle": "8",
                                 "maxWait": "-1",
-                                "username": "{$.db-user}",
-                                "password": "{$.db-password}",
-                                "driverClassName": "com.mysql.jdbc.Driver",
-                                "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
-                                "validationQuery": "select 1",
+                                "username": "{$.con.connection.db-user}",
+                                "password": "{$.con.connection.db-user-password}",
+                                "driverClassName": "{$.con.connection.db-driver}",
+                                "url": "{$.con.connection.connection-url}",
+                                "validationQuery": "{$.con.connection.validation-query}",
                                 "testOnReturn": "true",
                                 "testWhileIdle": "true"
                             }
@@ -340,9 +306,13 @@ application:
 
               rebuild-app:
                 steps:
+                  - get-env-props:
+                      action: getEnvironmentProperties
+                      phase: get-env-props
+                      output:
+                        props: result
                   - build-app:
                       action: serviceCall
-                      phase: build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 600
@@ -352,20 +322,9 @@ application:
                           scm-provider: "{$.scm-provider}"
                           git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                           app-branch: "{$.app-branch}"
-                  - deploy-libs:
-                      action: serviceCall
-                      phase: deploy-libs
-                      precedingPhases: [ get-env-props ]
-                      parameters:
-                        timeout: 300
-                        service: app-manage
-                        command: deploy-libs
-                        arguments:
-                          lib-uri: "{$.lib-uri}"
                   - deploy-war:
                       action: serviceCall
-                      phase: deploy-war
-                      precedingPhases: [ build-app, deploy-libs ]
+                      precedingPhases: [ build-app ]
                       parameters:
                         timeout: 300
                         service: app-manage
@@ -390,37 +349,40 @@ application:
                             - Resource: {
                                 "name": "jdbc/datasource",
                                 "auth": "Container",
-                                "type": "javax.sql.DataSource",
+                                "type": "{$.con.connection.db-dstype}",
                                 "maxActive": "8",
                                 "maxIdle": "8",
                                 "maxWait": "-1",
-                                "username": "{$.db-user}",
-                                "password": "{$.db-password}",
-                                "driverClassName": "com.mysql.jdbc.Driver",
-                                "url": "jdbc:mysql://{$.props.db-info.db-host[0]}:{$.props.db-info.db-port}/{$.db-name}?autoReconnect=true",
-                                "validationQuery": "select 1",
+                                "username": "{$.con.connection.db-user}",
+                                "password": "{$.con.connection.db-user-password}",
+                                "driverClassName": "{$.con.connection.db-driver}",
+                                "url": "{$.con.connection.connection-url}",
+                                "validationQuery": "{$.con.connection.validation-query}",
                                 "testOnReturn": "true",
                                 "testWhileIdle": "true"
                             }
-              destroy:
-                steps: []
 
     db:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "Database"
+        __locator.application-id: "MySQL Server"
+        #__locator.application-id: "Oracle DBxe"
+        #__locator.application-id: "Database"
       interfaces:
         input:
-          db-version: configuration(string)
+          db-port: configuration(int)
           db-root-password: configuration(string)
-        management:
-          create-db: receive-command(string db-name)
-          run-sql: receive-command(string db-name, list<string> sql-url)
-          change-grants: receive-command(list<string> app-hosts, string db-name, string db-user, string db-password, list<string> privileges)
+          image: configuration(string)
+          image-user: configuration(string)
+          instance-size: configuration(string)
+          recipe-url: configuration(string)
+        manage:
+          schema: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+          file-query: receive-command(list<string> sql-url, object connection)
         output:
           dbms: publish-signal(object)
-          db-host: publish-signal(list<string>)
-          db-port: publish-signal(string)
+          db-host: publish-signal(string)
+          db-port: publish-signal(int)
 
     app:
       type: reference.Submodule
