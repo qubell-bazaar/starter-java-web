@@ -159,7 +159,8 @@ application:
                           app-branch: "{$.app-branch}"
                   - deploy-libs:
                       action: serviceCall
-                      precedingPhases: [ get-env-props ]
+                      phase: deploy-libs
+                      precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
                         service: app-manage
@@ -245,7 +246,8 @@ application:
                           app-branch: "{$.app-branch}"
                   - deploy-libs:
                       action: serviceCall
-                      precedingPhases: [ get-env-props ]
+                      phase: deploy-libs
+                      precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
                         service: app-manage
@@ -322,6 +324,16 @@ application:
                           scm-provider: "{$.scm-provider}"
                           git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                           app-branch: "{$.app-branch}"
+                  - deploy-libs:
+                      action: serviceCall
+                      phase: deploy-libs
+                      precedingPhases: [ get-env-props, build-app ]
+                      parameters:
+                        timeout: 300
+                        service: app-manage
+                        command: deploy-libs
+                        arguments:
+                          lib-uri: "{$.lib-uri}"
                   - deploy-war:
                       action: serviceCall
                       precedingPhases: [ build-app ]
