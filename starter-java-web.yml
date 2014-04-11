@@ -377,9 +377,9 @@ application:
     db:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "MySQL Server"
+        #__locator.application-id: "MySQL Server"
         #__locator.application-id: "Oracle DBxe"
-        #__locator.application-id: "Database"
+        __locator.application-id: "Database"
       interfaces:
         input:
           db-port: configuration(int)
