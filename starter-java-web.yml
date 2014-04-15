@@ -105,8 +105,6 @@ application:
                       description: git branch
                   - lib-uri:
                       description: URI to additional app libs
-                  - war-uri:
-                      description: URI to app 
                   - lbstats-stats-user:
                       description: lb statistic user
                   - lbstats-stats-pass:
@@ -155,9 +153,9 @@ application:
                           scm-provider: "{$.scm-provider}"
                           git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                           app-branch: "{$.app-branch}"
-            	      output:
-                         warlist: result
-		 - deploy-libs:
+                      output:
+                        warlist: result
+                  - deploy-libs:
                       action: serviceCall
                       phase: deploy-libs
                       precedingPhases: [ get-env-props, build-app ]
@@ -245,8 +243,8 @@ application:
                           git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
                           app-branch: "{$.app-branch}"
                       output:
-                        warlist: result
-		  - deploy-libs:
+                          warlist: result
+                  - deploy-libs:
                       action: serviceCall
                       phase: deploy-libs
                       precedingPhases: [ get-env-props, build-app ]
@@ -328,7 +326,7 @@ application:
                           app-branch: "{$.app-branch}"
                       output:
                           warlist: result
-		  - deploy-libs:
+                  - deploy-libs:
                       action: serviceCall
                       phase: deploy-libs
                       precedingPhases: [ get-env-props, build-app ]
