@@ -384,7 +384,7 @@ application:
       configuration:
         #__locator.application-id: "MySQL Server"
         #__locator.application-id: "Oracle DBxe"
-        __locator.application-id: "mysql-component-new"
+        __locator.application-id: "Database"
       interfaces:
         input:
           db-port: configuration(int)
@@ -404,7 +404,7 @@ application:
     app:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "component-tomcat-broadleaf"
+        __locator.application-id: "Application Server"
       interfaces:
         input:
           quantity: configuration(string)
@@ -419,7 +419,7 @@ application:
     lb:
       type: reference.Submodule
       configuration:
-        __locator.application-id: "component-haproxy"
+        __locator.application-id: "Load Balancer"
       interfaces:
         input:
           stats-user: configuration(string)
