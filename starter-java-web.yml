@@ -53,7 +53,7 @@ application:
             app-manage:
               build-app: send-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
               deploy-libs: send-command(list<string> lib-uri)
-              deploy-war: send-command(string war-uri, object context-attrs, object context-nodes)
+              deploy-war: send-command(string uri, string path, object context-attrs, object context-nodes)
             app-output:
               app-hosts: consume-signal(list<string>)
               app-port: consume-signal(string)
@@ -174,7 +174,8 @@ application:
                         service: app-manage
                         command: deploy-war
                         arguments:
-                          war-uri: "{$.warlist.wars[0]}"
+                          uri: "{$.warlist.wars[0]}"
+                          path: "/"
                           context-attrs: {
                             "docBase": "{$.warlist.wars[0]}",
                             "path": "/",
@@ -262,7 +263,8 @@ application:
                         service: app-manage
                         command: deploy-war
                         arguments:
-                          war-uri: "{$.warlist.wars[0]}"
+                          uri: "{$.warlist.wars[0]}"
+                          path: "/"
                           context-attrs: {
                             "docBase": "{$.warlist.wars[0]}",
                             "path": "/",
@@ -344,7 +346,8 @@ application:
                         service: app-manage
                         command: deploy-war
                         arguments:
-                          war-uri: "{$.warlist.wars[0]}"
+                          uri: "{$.warlist.wars[0]}"
+                          path: "/"
                           context-attrs: {
                             "docBase": "{$.warlist.wars[0]}",
                             "path": "/",
@@ -408,7 +411,7 @@ application:
         management:
           build-app: receive-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
+          deploy-war: receive-command(string uri, string path, object context-attrs, object context-nodes)
         output:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
