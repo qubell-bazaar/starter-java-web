@@ -3,13 +3,13 @@ kit:
   link: https://github.com/qubell/starter-java-web
   applications:
     - name: PetClinic
-      manifest: https://raw.github.com/qubell-bazaar/starter-java-web/0.1.0/starter-java-web.yml
+      manifest: https://raw.github.com/qubell-bazaar/starter-java-web/0.1.2/starter-java-web.yml
     - name: "Database"
-      manifest: https://raw.github.com/qubell-bazaar/component-mysql-dev/0.2.0/component-mysql-dev.yml
+      manifest: https://raw.github.com/qubell-bazaar/component-mysql-dev/0.2.1/component-mysql-dev.yml
     - name: "Load Balancer"
-      manifest: https://raw.github.com/qubell-bazaar/component-haproxy/0.1.0/component-haproxy.yml
+      manifest: https://raw.github.com/qubell-bazaar/component-haproxy/0.1.2/component-haproxy.yml
     - name: "Application Server"
-      manifest: https://raw.github.com/qubell-bazaar/component-tomcat-dev/0.2.1/component-tomcat-dev.yml
+      manifest: https://raw.github.com/qubell-bazaar/component-tomcat-dev/0.2.4/component-tomcat-dev.yml
   provider:
     name: "Qubell"
     link: http://qubell.com
