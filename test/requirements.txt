@@ -1,4 +1,5 @@
 simplejson
 pyaml
 requests
+testtools
 qubell-api-python-client
