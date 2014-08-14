@@ -3,7 +3,7 @@ application:
     input.lb-bucket: http://roundrobin:80
     input.app-fork: qubell
     input.app-branch: HEAD #red, master
-    input.app-quantity: "1"
+    input.app-quantity: 1
 
   bindings:
     - [main.workflow, db]
@@ -17,9 +17,9 @@ application:
       lb-bucket: "bind(main.workflow#input.lb-bucket)"
       app-quantity: "bind(app#input.quantity)"
     endpoints:
-      lb: "bind(lb#output.lb-stats)"
-      app: "bind(app#output.app-hosts)"
-      db: "bind(db#output.dbms)"
+      lb: "bind(lb#haproxy.lb-stats)"
+      app: "bind(app#tomcat.app-hosts)"
+      db: "bind(db#mysql.dbms)"
       entry: "bind(main.workflow#result.entry-url)"
 
   components:
@@ -29,41 +29,57 @@ application:
           type: workflow.Instance
           interfaces:
             input:
-              scm-provider: configuration(string)
-              app-fork: configuration(string)
-              app-branch: configuration(string)
-              lb-bucket: configuration(string)
+              scm-provider:
+                  type: configuration(string)
+              app-fork:
+                  type: configuration(string)
+              app-branch:
+                  type: configuration(string)
+              lb-bucket:
+                  type: configuration(string)
               #as constants
-              db-sql-url: configuration(list<string>)
-              db-user: configuration(string)
-              db-password: configuration(string)
-              privileges: configuration(list<string>)
-              lib-uri: configuration(list<string>)
-              lbstats-stats-user: configuration(string)
-              lbstats-stats-pass: configuration(string)
-              lbstats-stats-port: configuration(string)
-              lbstats-stats-url: configuration(string)
-            db-info:
-              dbms: consume-signal(object)
-              db-host: consume-signal(string)
-              db-port: consume-signal(int)
-            db-manage:
-              schema: send-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
-              file-query: send-command(object connection, list<string> sql-url)
-            app-manage:
-              build-app: send-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
-              deploy-libs: send-command(list<string> lib-uri)
-              deploy-war: send-command(string uri, string path, object context-attrs, object context-nodes)
-            app-output:
-              app-hosts: consume-signal(list<string>)
-              app-port: consume-signal(string)
-            lb-manage:
-              add-servers: send-command(list<string> app-hosts, string app-port, string lb-bucket => string entry-url)
-              reconfigure-servers: send-command(list<string> app-hosts, string app-port, string lb-bucket)
+              db-sql-url:
+                  type: configuration(list<string>)
+              db-user:
+                  type: configuration(string)
+              db-password:
+                  type: configuration(string)
+              privileges:
+                  type: configuration(list<string>)
+              lib-uri:
+                  type: configuration(list<string>)
+            mysql:
+              dbms:
+                  type: consume-signal(object)
+              db-host:
+                  type: consume-signal(string)
+              db-port:
+                  type: consume-signal(int)
+              schema:
+                  type: send-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+              file-query:
+                  type: send-command(object connection, list<string> sql-url)
+            tomcat:
+              build-app:
+                  type: send-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
+              deploy-libs:
+                  type: send-command(list<string> lib-uri)
+              deploy-war:
+                  type: send-command(string uri, string path, object context-attrs, object context-nodes)
+              app-hosts:
+                  type: consume-signal(list<string>)
+              app-port:
+                  type: consume-signal(int)
+            haproxy:
+              add-servers:
+                  type: send-command(list<string> app-hosts, int app-port, string lb-bucket => string entry-url)
+              reconfigure-servers:
+                  type: send-command(list<string> app-hosts, int app-port, string lb-bucket)
             result:
-              entry-url: publish-signal(string)
+              entry-url:
+                  type: publish-signal(string)
 
-          required: [db-manage, app-manage, lb-manage, db-info, app-output]
+          required: [mysql, tomcat, haproxy]
           configuration:
             #Oracle
             #input.db-sql-url: ["https://dl.dropboxusercontent.com/u/250836/petclinic-oracle-schema.sql", "https://dl.dropboxusercontent.com/u/250836/petclinic-oracle-dataload.sql"]
@@ -74,13 +90,9 @@ application:
             input.privileges: ["all"] #const
             input.scm-provider: git #const
             input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://dl.dropboxusercontent.com/u/250836/ojdbc6.jar"]
-            input.lbstats-stats-user: admin
-            input.lbstats-stats-pass: pa55w0rd
-            input.lbstats-stats-port: "1926"
-            input.lbstats-stats-url: "/admin?stats"
 
             configuration.triggers:
-              app-output.app-hosts: app-scale
+              tomcat.app-hosts: app-scale
               input.app-fork: rebuild-app
               input.app-branch: rebuild-app
 
@@ -88,31 +100,6 @@ application:
 
             configuration.workflows:
               launch:
-                parameters:
-                  - db-user:
-                      description: user for new database
-                  - db-password:
-                      description: user password for new database
-                  - privileges:
-                      description: user privileges for new database
-                  - db-sql-url:
-                      description: sql url
-                  - scm-provider:
-                      description: "Source provider (Git or SVN)"
-                  - app-fork:
-                      description: git fork
-                  - app-branch:
-                      description: git branch
-                  - lib-uri:
-                      description: URI to additional app libs
-                  - lbstats-stats-user:
-                      description: lb statistic user
-                  - lbstats-stats-pass:
-                      description: lb statistic user's password 
-                  - lbstats-stats-port:
-                      description: lb statistic port
-                  - lbstats-stats-url:
-                      description: lb statistic's url
                 steps:
                   - get-env-props:
                       action: getEnvironmentProperties
@@ -124,7 +111,7 @@ application:
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 300
-                        service: db-manage
+                        service: mysql
                         command: schema
                         arguments:
                           db-user: "{$.db-user}"
@@ -137,7 +124,7 @@ application:
                       precedingPhases: [ manage-schema ]
                       parameters:
                         timeout: 300
-                        service: db-manage
+                        service: mysql
                         command: file-query
                         arguments:
                           connection: "{$.con.connection}"
@@ -147,7 +134,7 @@ application:
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 600
-                        service: app-manage
+                        service: tomcat
                         command: build-app
                         arguments:
                           scm-provider: "{$.scm-provider}"
@@ -161,7 +148,7 @@ application:
                       precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
-                        service: app-manage
+                        service: tomcat
                         command: deploy-libs
                         arguments:
                           lib-uri: "{$.lib-uri}"
@@ -171,7 +158,7 @@ application:
                       precedingPhases: [ upload-sql, build-app, deploy-libs ]
                       parameters:
                         timeout: 300
-                        service: app-manage
+                        service: tomcat
                         command: deploy-war
                         arguments:
                           uri: "{$.warlist.wars[0]}"
@@ -213,11 +200,11 @@ application:
                       phase: lb-add-server
                       parameters:
                         timeout: 300
-                        service: lb-manage
+                        service: haproxy
                         command: add-servers
                         arguments:
-                          app-hosts: "{$.props.app-output.app-hosts}"
-                          app-port: "{$.props.app-output.app-port}"
+                          app-hosts: "{$.props.tomcat.app-hosts}"
+                          app-port: "{$.props.tomcat.app-port}"
                           lb-bucket: "http://roundrobin:80/"
                       output:
                         result-lb: result
@@ -237,7 +224,7 @@ application:
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 600
-                        service: app-manage
+                        service: tomcat
                         command: build-app
                         arguments:
                           scm-provider: "{$.scm-provider}"
@@ -251,7 +238,7 @@ application:
                       precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
-                        service: app-manage
+                        service: tomcat
                         command: deploy-libs
                         arguments:
                           lib-uri: "{$.lib-uri}"
@@ -260,7 +247,7 @@ application:
                       precedingPhases: [ build-app, deploy-libs ]
                       parameters:
                         timeout: 300
-                        service: app-manage
+                        service: tomcat
                         command: deploy-war
                         arguments:
                           uri: "{$.warlist.wars[0]}"
@@ -301,11 +288,11 @@ application:
                       phase: lb-reconfigure-servers
                       parameters:
                         timeout: 600
-                        service: lb-manage
+                        service: haproxy
                         command: reconfigure-servers
                         arguments:
-                          app-hosts: "{$.props.app-output.app-hosts}"
-                          app-port: "{$.props.app-output.app-port}"
+                          app-hosts: "{$.props.tomcat.app-hosts}"
+                          app-port: "{$.props.tomcat.app-port}"
                           lb-bucket: "http://roundrobin:80/"
 
               rebuild-app:
@@ -320,7 +307,7 @@ application:
                       precedingPhases: [ get-env-props ]
                       parameters:
                         timeout: 600
-                        service: app-manage
+                        service: tomcat
                         command: build-app
                         arguments:
                           scm-provider: "{$.scm-provider}"
@@ -334,7 +321,7 @@ application:
                       precedingPhases: [ get-env-props, build-app ]
                       parameters:
                         timeout: 300
-                        service: app-manage
+                        service: tomcat
                         command: deploy-libs
                         arguments:
                           lib-uri: "{$.lib-uri}"
@@ -343,7 +330,7 @@ application:
                       precedingPhases: [ build-app ]
                       parameters:
                         timeout: 300
-                        service: app-manage
+                        service: tomcat
                         command: deploy-war
                         arguments:
                           uri: "{$.warlist.wars[0]}"
@@ -387,19 +374,28 @@ application:
         __locator.application-id: "Database"
       interfaces:
         input:
-          db-port: configuration(int)
-          db-root-password: configuration(string)
-          image: configuration(string)
-          image-user: configuration(string)
-          instance-size: configuration(string)
-          recipe-url: configuration(string)
-        manage:
-          schema: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
-          file-query: receive-command(list<string> sql-url, object connection)
-        output:
-          dbms: publish-signal(object)
-          db-host: publish-signal(string)
-          db-port: publish-signal(int)
+          db-port:
+              type: configuration(int)
+              name: Database listen port
+          db-root-password:
+              type: configuration(string)
+              name: Database root password
+        mysql:
+          schema:
+              type: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+              name: Manage Schema
+          file-query:
+              type: receive-command(list<string> sql-url, object connection)
+              name: Run Sql Query
+          dbms:
+              type: publish-signal(object)
+              name: Database Parameters
+          db-host:
+              type: publish-signal(string)
+              name: Database Host
+          db-port:
+              type: publish-signal(int)
+              name: Database listen port
 
     app:
       type: reference.Submodule
@@ -407,27 +403,55 @@ application:
         __locator.application-id: "Application Server"
       interfaces:
         input:
-          quantity: configuration(string)
-        management:
-          build-app: receive-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
-          deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string uri, string path, object context-attrs, object context-nodes)
-        output:
-          app-hosts: publish-signal(list<string>)
-          app-port: publish-signal(string)
+          operating-system:
+              type: configuration(map<string,object>)
+              suggestions:
+                  "centos": {image: "us-east-1/ami-bf5021d6", identity: root}
+                  "amazon": {image: "us-east-1/ami-1ba18d72", identity: ec2-user}
+                  "ubuntu1204": {image: "us-east-1/ami-967edcff", identity: ubuntu}
+                  "ubuntu1004": {image: "us-east-1/ami-9f3906f6", identity: ubuntu}
+          instance-size:
+              type: configuration(string)
+              name: EC2 instance type
+          quantity:
+              type: configuration(int)
+              name: Appliction hosts quantity
+        tomcat:
+          build-app:
+              type: receive-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
+              name: Maven Build
+          deploy-libs:
+              type: receive-command(list<string> lib-uri)
+              name: Deploy Libs
+          deploy-war:
+              type: receive-command(string uri, string path, object context-attrs, object context-nodes)
+              name: Deploy war/jar
+          reconfigure:
+              type: receive-command(string java-opts)
+              name: Reconfigure Tomcat
+          manage-service:
+              type: receive-command(string service-action)
+              name: Manage Service
+          app-hosts:
+              type: publish-signal(list<string>)
+              name: Broadleaf Application Hosts
+          app-port:
+              type: publish-signal(int)
+              name: Appliction listen port
 
     lb:
       type: reference.Submodule
       configuration:
         __locator.application-id: "Load Balancer"
       interfaces:
-        input:
-          stats-user: configuration(string)
-          stats-pass: configuration(string)
-          stats-port: configuration(string)
-          stats-url: configuration(string)
-        lb-manage:
-          add-servers: receive-command(list<string> app-hosts, string app-port, string lb-bucket => string entry-url)
-          reconfigure-servers: receive-command(list<string> app-hosts, string app-port, string lb-bucket)
-        output:
-          lb-stats: publish-signal(object)
+        haproxy:
+          add-servers:
+              type: receive-command(list<string> app-hosts, int app-port, string lb-bucket => string entry-url)
+              name: Add Servers
+          reconfigure-servers:
+              type: receive-command(list<string> app-hosts, int app-port, string lb-bucket)
+              name: Reconfigure Servers
+          lb-stats:
+              type: publish-signal(object)
+              name: Haproxy statistics
+
