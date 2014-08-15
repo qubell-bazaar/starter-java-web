@@ -2,7 +2,7 @@ kit:
   name: "PetClinic"
   link: https://github.com/qubell/starter-java-web
   applications:
-    - name: PetClinic
+    - name: "PetClinic"
       manifest: https://raw.github.com/qubell-bazaar/starter-java-web/0.1.2/starter-java-web.yml
     - name: "Database"
       manifest: https://raw.github.com/qubell-bazaar/component-mysql-dev/0.2.1/component-mysql-dev.yml

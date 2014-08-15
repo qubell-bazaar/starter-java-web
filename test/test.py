@@ -82,6 +82,7 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
     name = "starter-java-web"
     apps = [{
         "name": name,
+        "settings": {"destroyInterval": 7200000},
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
     }, {
         "name": "Database",
@@ -125,7 +126,7 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
         assert len(instance.returnValues['endpoints.app']) == 1
         params = {'input.app-quantity': '2'}
         instance.reconfigure(parameters=params)
-        assert instance.ready(timeout=20)
+        assert instance.ready(timeout=30)
 
         check_site(instance)
         # Check we have 2 hosts up
