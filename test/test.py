@@ -5,8 +5,6 @@ from qubell.api.private.testing import environment, instance, values
 from qubell.api.tools import retry
 from testtools import skip
 
-
-
 from test_runner import BaseComponentTestCase
 
 def eventually(*exceptions):
@@ -80,26 +78,18 @@ def check_site(instance):
 })
 class PetClinicComponentTestCase(BaseComponentTestCase):
     name = "starter-java-web"
+    meta = "https://raw.githubusercontent.com/qubell-bazaar/starter-java-web/master/meta.yml"
+    db_name = "petclinic"
     apps = [{
         "name": name,
         "settings": {"destroyInterval": 7200000},
-        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
-    }, {
-        "name": "Database",
-        "url": "https://raw.github.com/qubell-bazaar/component-mysql-dev/master/component-mysql-dev.yml",
-        "launch": False
-    }, {
-        "name": "Load Balancer",
-        "url": "https://raw.github.com/qubell-bazaar/component-haproxy/master/component-haproxy.yml",
-        "launch": False
-    }, {
-        "name": "Application Server",
-        "url": "https://raw.github.com/qubell-bazaar/component-tomcat-dev/master/component-tomcat-dev.yml",
-        "launch": False
-    }]
-
-    db_name = "petclinic"
-
+        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))  
+   }]
+  
+    @classmethod
+    def timeout(cls):
+        return 120 
+ 
     @instance(byApplication=name)
     @values({"lb-host": "host"})
     def test_host(self, instance, host):
@@ -124,7 +114,8 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
     @instance(byApplication=name)
     def test_scaling(self, instance):
         assert len(instance.returnValues['endpoints.app']) == 1
-        params = {'input.app-quantity': '2'}
+        params = {'input.app-quantity': '2',
+                 'input.app-branch': instance.parameters['input.app-branch']}
         instance.reconfigure(parameters=params)
         assert instance.ready(timeout=30)
 
@@ -135,13 +126,14 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
             assert len(instance.returnValues['endpoints.app']) == 2
         eventually_assert()
 
-    @skip('Until https://github.com/qubell/starter-java-web/pull/7 applied')
-    def test_change_branch(self, instance):
+    @instance(byApplication=name)
+    @values({"lb-host": "host"})
+    def test_change_branch(self, instance, host):
         params = {'input.app-branch': 'red'}
         instance.reconfigure(parameters=params)
         assert instance.ready(timeout=20)
 
-        check_site()
-        resp = requests.get(self.url)
+        check_site(instance)
+        resp = requests.get("http://" + host, verify=False)
 
         assert 'Updated PetClinic :: a Spring Framework demonstration' in resp.text
