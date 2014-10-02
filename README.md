@@ -3,7 +3,10 @@ starter-java-web
 
 This Starter Kit provides the basic building blocks for deploying, updating and scaling Java-based applications on Qubell Platform, and can be used as a starting point for your own automation project.
 
-[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/starter-java-web/master/meta.yml)
+Version 0.2.0
+-------------
+
+[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/starter-java-web/0.2.0/meta.yml)
 
 Features
 --------
