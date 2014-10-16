@@ -107,111 +107,93 @@ application:
                       output:
                         props: result
                   - manage-schema:
-                      action: serviceCall
+                      action: mysql.schema
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 300
-                        service: mysql
-                        command: schema
-                        arguments:
-                          db-user: "{$.db-user}"
-                          db-user-password: "{$.db-password}"
-                          db-user-privileges: "{$.privileges}"
+                        commandCallTimeout: 5 minutes
+                        db-user: "{$.db-user}"
+                        db-user-password: "{$.db-password}"
+                        db-user-privileges: "{$.privileges}"
                       output:
-                        con: result
+                        con: connection
                   - upload-sql:
-                      action: serviceCall
+                      action: mysql.file-query
                       precedingPhases: [ manage-schema ]
                       parameters:
-                        timeout: 300
-                        service: mysql
-                        command: file-query
-                        arguments:
-                          connection: "{$.con.connection}"
-                          sql-url: "{$.db-sql-url}"
+                        commandCallTimeout: 5 minutes
+                        connection: "{$.con}"
+                        sql-url: "{$.db-sql-url}"
                   - build-app:
-                      action: serviceCall
+                      action: tomcat.build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 600
-                        service: tomcat
-                        command: build-app
-                        arguments:
-                          scm-provider: "{$.scm-provider}"
-                          git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
-                          app-branch: "{$.app-branch}"
+                        commandCallTimeout: 10 minutes
+                        scm-provider: "{$.scm-provider}"
+                        git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
+                        app-branch: "{$.app-branch}"
                       output:
-                        warlist: result
+                        warlist: wars
                   - deploy-libs:
-                      action: serviceCall
+                      action: tomcat.deploy-libs
                       phase: deploy-libs
                       precedingPhases: [ get-env-props, build-app ]
                       parameters:
-                        timeout: 300
-                        service: tomcat
-                        command: deploy-libs
-                        arguments:
-                          lib-uri: "{$.lib-uri}"
+                        commandCallTimeout: 5 minutes
+                        lib-uri: "{$.lib-uri}"
                   - deploy-war:
-                      action: serviceCall
+                      action: tomcat.deploy-war
                       phase: deploy-war
                       precedingPhases: [ upload-sql, build-app, deploy-libs ]
                       parameters:
-                        timeout: 300
-                        service: tomcat
-                        command: deploy-war
-                        arguments:
-                          uri: "{$.warlist.wars[0]}"
-                          path: "/"
-                          context-attrs: {
-                            "docBase": "{$.warlist.wars[0]}",
-                            "path": "/",
-                            "debug": "5",
-                            "reloadable": "true",
-                            "crossContext": "true",
-                            "allowLinking": "true"
+                        commandCallTimeout: 5 minutes
+                        uri: "{$.warlist[0]}"
+                        path: "/"
+                        context-attrs: {
+                          "docBase": "{$.warlist[0]}",
+                          "path": "/",
+                          "debug": "5",
+                          "reloadable": "true",
+                          "crossContext": "true",
+                          "allowLinking": "true"
+                        }
+                        context-nodes:
+                          - Environments: {
+                              "name": "appEnvironment",
+                              "value": "_default",
+                              "type": "java.lang.String",
+                              "override": "false"
                           }
-                          context-nodes:
-                            - Environments: {
-                                "name": "appEnvironment",
-                                "value": "_default",
-                                "type": "java.lang.String",
-                                "override": "false"
-                            }
-                            - Resource: {
-                                "name": "jdbc/datasource",
-                                "auth": "Container",
-                                "type": "{$.con.connection.db-dstype}",
-                                "maxActive": "8",
-                                "maxIdle": "8",
-                                "maxWait": "-1",
-                                "username": "{$.con.connection.db-user}",
-                                "password": "{$.con.connection.db-user-password}",
-                                "driverClassName": "{$.con.connection.db-driver}",
-                                "url": "{$.con.connection.connection-url}",
-                                "validationQuery": "{$.con.connection.validation-query}",
-                                "testOnReturn": "true",
-                                "testWhileIdle": "true"
-                            }
+                          - Resource: {
+                              "name": "jdbc/datasource",
+                              "auth": "Container",
+                              "type": "{$.con.db-dstype}",
+                              "maxActive": "8",
+                              "maxIdle": "8",
+                              "maxWait": "-1",
+                              "username": "{$.con.db-user}",
+                              "password": "{$.con.db-user-password}",
+                              "driverClassName": "{$.con.db-driver}",
+                              "url": "{$.con.connection-url}",
+                              "validationQuery": "{$.con.validation-query}",
+                              "testOnReturn": "true",
+                              "testWhileIdle": "true"
+                          }
 
                   - lb-add-server:
-                      action: serviceCall
+                      action: haproxy.add-servers
                       precedingPhases: [ deploy-war ]
                       phase: lb-add-server
                       parameters:
-                        timeout: 300
-                        service: haproxy
-                        command: add-servers
-                        arguments:
-                          app-hosts: "{$.props.tomcat.app-hosts}"
-                          app-port: "{$.props.tomcat.app-port}"
-                          lb-bucket: "http://roundrobin:80/"
+                        commandCallTimeout: 5 minutes
+                        app-hosts: "{$.props.tomcat.app-hosts}"
+                        app-port: "{$.props.tomcat.app-port}"
+                        lb-bucket: "http://roundrobin:80/"
                       output:
-                        result-lb: result
+                        result-lb: entry-url
                           #todo move lb-bucket to launch param
                 return:
                   entry-url:
-                    value: "{$.result-lb.entry-url}"
+                    value: "{$.result-lb}"
               app-scale:
                 steps:
                   - get-env-props:
@@ -220,81 +202,70 @@ application:
                       output:
                         props: result
                   - build-app:
-                      action: serviceCall
+                      action: tomcat.build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 600
-                        service: tomcat
-                        command: build-app
-                        arguments:
-                          scm-provider: "{$.scm-provider}"
-                          git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
-                          app-branch: "{$.app-branch}"
+                        commandCallTimeout: 10 minutes
+                        scm-provider: "{$.scm-provider}"
+                        git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
+                        app-branch: "{$.app-branch}"
                       output:
-                          warlist: result
+                        warlist: wars
                   - deploy-libs:
-                      action: serviceCall
+                      action: tomcat.deploy-libs
                       phase: deploy-libs
                       precedingPhases: [ get-env-props, build-app ]
                       parameters:
-                        timeout: 300
-                        service: tomcat
-                        command: deploy-libs
-                        arguments:
-                          lib-uri: "{$.lib-uri}"
+                        commandCallTimeout: 5 minutes
+                        lib-uri: "{$.lib-uri}"
                   - deploy-war:
-                      action: serviceCall
+                      action: tomcat.deploy-war
+                      phase: deploy-war
                       precedingPhases: [ build-app, deploy-libs ]
                       parameters:
-                        timeout: 300
-                        service: tomcat
-                        command: deploy-war
-                        arguments:
-                          uri: "{$.warlist.wars[0]}"
-                          path: "/"
-                          context-attrs: {
-                            "docBase": "{$.warlist.wars[0]}",
-                            "path": "/",
-                            "debug": "5",
-                            "reloadable": "true",
-                            "crossContext": "true",
-                            "allowLinking": "true"
+                        commandCallTimeout: 5 minutes
+                        uri: "{$.warlist[0]}"
+                        path: "/"
+                        context-attrs: {
+                          "docBase": "{$.warlist[0]}",
+                          "path": "/",
+                          "debug": "5",
+                          "reloadable": "true",
+                          "crossContext": "true",
+                          "allowLinking": "true"
+                        }
+                        context-nodes:
+                          - Environments: {
+                              "name": "appEnvironment",
+                              "value": "_default",
+                              "type": "java.lang.String",
+                              "override": "false"
                           }
-                          context-nodes:
-                            - Environments: {
-                                "name": "appEnvironment",
-                                "value": "_default",
-                                "type": "java.lang.String",
-                                "override": "false"
-                            }
-                            - Resource: {
-                                "name": "jdbc/datasource",
-                                "auth": "Container",
-                                "type": "{$.con.connection.db-dstype}",
-                                "maxActive": "8",
-                                "maxIdle": "8",
-                                "maxWait": "-1",
-                                "username": "{$.con.connection.db-user}",
-                                "password": "{$.con.connection.db-user-password}",
-                                "driverClassName": "{$.con.connection.db-driver}",
-                                "url": "{$.con.connection.connection-url}",
-                                "validationQuery": "{$.con.connection.validation-query}",
-                                "testOnReturn": "true",
-                                "testWhileIdle": "true"
-                            }
+                          - Resource: {
+                              "name": "jdbc/datasource",
+                              "auth": "Container",
+                              "type": "{$.con.db-dstype}",
+                              "maxActive": "8",
+                              "maxIdle": "8",
+                              "maxWait": "-1",
+                              "username": "{$.con.db-user}",
+                              "password": "{$.con.db-user-password}",
+                              "driverClassName": "{$.con.db-driver}",
+                              "url": "{$.con.connection-url}",
+                              "validationQuery": "{$.con.validation-query}",
+                              "testOnReturn": "true",
+                              "testWhileIdle": "true"
+                          }
+
                   - lb-reconfigure-servers:
-                      action: serviceCall
+                      action: haproxy.reconfigure-servers
                       precedingPhases: [ deploy-war ]
                       phase: lb-reconfigure-servers
                       parameters:
-                        timeout: 600
-                        service: haproxy
-                        command: reconfigure-servers
-                        arguments:
-                          app-hosts: "{$.props.tomcat.app-hosts}"
-                          app-port: "{$.props.tomcat.app-port}"
-                          lb-bucket: "http://roundrobin:80/"
-
+                        commandCallTimeout: 10 minutes
+                        app-hosts: "{$.props.tomcat.app-hosts}"
+                        app-port: "{$.props.tomcat.app-port}"
+                        lb-bucket: "http://roundrobin:80/"
               rebuild-app:
                 steps:
                   - get-env-props:
@@ -303,68 +274,60 @@ application:
                       output:
                         props: result
                   - build-app:
-                      action: serviceCall
+                      action: tomcat.build-app
                       precedingPhases: [ get-env-props ]
                       parameters:
-                        timeout: 600
-                        service: tomcat
-                        command: build-app
-                        arguments:
-                          scm-provider: "{$.scm-provider}"
-                          git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
-                          app-branch: "{$.app-branch}"
+                        commandCallTimeout: 10 minutes
+                        scm-provider: "{$.scm-provider}"
+                        git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
+                        app-branch: "{$.app-branch}"
                       output:
-                          warlist: result
+                        warlist: wars
                   - deploy-libs:
-                      action: serviceCall
+                      action: tomcat.deploy-libs
                       phase: deploy-libs
                       precedingPhases: [ get-env-props, build-app ]
                       parameters:
-                        timeout: 300
-                        service: tomcat
-                        command: deploy-libs
-                        arguments:
-                          lib-uri: "{$.lib-uri}"
+                        commandCallTimeout: 5 minutes
+                        lib-uri: "{$.lib-uri}"
                   - deploy-war:
-                      action: serviceCall
-                      precedingPhases: [ build-app ]
+                      action: tomcat.deploy-war
+                      phase: deploy-war
+                      precedingPhases: [ build-app, deploy-libs ]
                       parameters:
-                        timeout: 300
-                        service: tomcat
-                        command: deploy-war
-                        arguments:
-                          uri: "{$.warlist.wars[0]}"
-                          path: "/"
-                          context-attrs: {
-                            "docBase": "{$.warlist.wars[0]}",
-                            "path": "/",
-                            "debug": "5",
-                            "reloadable": "true",
-                            "crossContext": "true",
-                            "allowLinking": "true"
+                        commandCallTimeout: 5 minutes
+                        uri: "{$.warlist[0]}"
+                        path: "/"
+                        context-attrs: {
+                          "docBase": "{$.warlist[0]}",
+                          "path": "/",
+                          "debug": "5",
+                          "reloadable": "true",
+                          "crossContext": "true",
+                          "allowLinking": "true"
+                        }
+                        context-nodes:
+                          - Environments: {
+                              "name": "appEnvironment",
+                              "value": "_default",
+                              "type": "java.lang.String",
+                              "override": "false"
                           }
-                          context-nodes:
-                            - Environments: {
-                                "name": "appEnvironment",
-                                "value": "_default",
-                                "type": "java.lang.String",
-                                "override": "false"
-                            }
-                            - Resource: {
-                                "name": "jdbc/datasource",
-                                "auth": "Container",
-                                "type": "{$.con.connection.db-dstype}",
-                                "maxActive": "8",
-                                "maxIdle": "8",
-                                "maxWait": "-1",
-                                "username": "{$.con.connection.db-user}",
-                                "password": "{$.con.connection.db-user-password}",
-                                "driverClassName": "{$.con.connection.db-driver}",
-                                "url": "{$.con.connection.connection-url}",
-                                "validationQuery": "{$.con.connection.validation-query}",
-                                "testOnReturn": "true",
-                                "testWhileIdle": "true"
-                            }
+                          - Resource: {
+                              "name": "jdbc/datasource",
+                              "auth": "Container",
+                              "type": "{$.con.db-dstype}",
+                              "maxActive": "8",
+                              "maxIdle": "8",
+                              "maxWait": "-1",
+                              "username": "{$.con.db-user}",
+                              "password": "{$.con.db-user-password}",
+                              "driverClassName": "{$.con.db-driver}",
+                              "url": "{$.con.connection-url}",
+                              "validationQuery": "{$.con.validation-query}",
+                              "testOnReturn": "true",
+                              "testWhileIdle": "true"
+                          }
 
     db:
       type: reference.Submodule
@@ -454,4 +417,3 @@ application:
           lb-stats:
               type: publish-signal(object)
               name: Haproxy statistics
-
