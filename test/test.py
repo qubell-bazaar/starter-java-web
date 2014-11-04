@@ -75,16 +75,17 @@ def check_site(instance):
     }
 })
 class PetClinicComponentTestCase(BaseComponentTestCase):
-    name = "PetClinic"
+    name = "starter-java-web"
     meta = "https://raw.githubusercontent.com/qubell-bazaar/starter-java-web/master/meta.yml"
     db_name = "petclinic"
     apps = [{
         "name": name,
         "settings": {"destroyInterval": 7200000},
+        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
    }]
     @classmethod
     def timeout(cls):
-        return 30
+        return 120
  
     @instance(byApplication=name)
     @values({"lb-host": "host"})
@@ -113,8 +114,6 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
         params = {'input.app-quantity': '2',
                  'input.app-branch': instance.parameters['input.app-branch']}
         instance.reconfigure(parameters=params)
-                 'input.app-branch': instance.parameters['input.app-branch']}
-        instance.reconfigure(parameters=params)
         assert instance.ready(timeout=30)
 
         check_site(instance)
@@ -133,3 +132,5 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
 
         check_site(instance)
         resp = requests.get("http://" + host, verify=False)
+
+        assert 'Updated PetClinic :: a Spring Framework demonstration' in resp.text
