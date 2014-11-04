@@ -6,23 +6,38 @@ application:
     input.app-quantity: 1
 
   bindings:
-    - [main.workflow, db]
-    - [main.workflow, app]
-    - [main.workflow, lb]
+    - [main.workflow, Database]
+    - [main.workflow, AppServer]
+    - [main.workflow, LoadBalancer]
 
   interfaces:
     input:
       app-fork: "bind(main.workflow#input.app-fork)"
       app-branch: "bind(main.workflow#input.app-branch)"
       lb-bucket: "bind(main.workflow#input.lb-bucket)"
-      app-quantity: "bind(app#input.quantity)"
+      app-quantity: "bind(AppServer#input.quantity)"
+    app-meta:
+      application-pic: "bind(metadata#output.application-pic)"
     endpoints:
-      lb: "bind(lb#haproxy.lb-stats)"
-      app: "bind(app#tomcat.app-hosts)"
-      db: "bind(db#mysql.dbms)"
+      lb: "bind(LoadBalancer#haproxy.lb-stats)"
+      app: "bind(AppServer#tomcat.app-hosts)"
+      db: "bind(Database#mysql.dbms)"
       entry: "bind(main.workflow#result.entry-url)"
 
   components:
+    metadata:
+      type: cobalt.common.Constants
+      interfaces:
+        output:
+          application-pic:
+            type: publish-signal(map<string, object>)
+            name: ""
+      configuration:
+        configuration.values:
+          output.application-pic:
+            large: "https://s3.amazonaws.com/qubell-images/spring.png"
+            small: "https://s3.amazonaws.com/qubell-images/spring_small.png"
+            small-height: 64
     main:
       components:
         workflow:
@@ -33,10 +48,13 @@ application:
                   type: configuration(string)
               app-fork:
                   type: configuration(string)
+                  name: Git fork
               app-branch:
                   type: configuration(string)
+                  name: Git branch
               lb-bucket:
                   type: configuration(string)
+                  name: LoadBalancer bucket
               #as constants
               db-sql-url:
                   type: configuration(list<string>)
@@ -78,6 +96,7 @@ application:
             result:
               entry-url:
                   type: publish-signal(string)
+                  name: PetClinic
 
           required: [mysql, tomcat, haproxy]
           configuration:
@@ -329,7 +348,7 @@ application:
                               "testWhileIdle": "true"
                           }
 
-    db:
+    Database:
       type: reference.Submodule
       configuration:
         #__locator.application-id: "MySQL Server"
@@ -339,28 +358,28 @@ application:
         input:
           db-port:
               type: configuration(int)
-              name: Database listen port
+              name: Database port
           db-root-password:
               type: configuration(string)
               name: Database root password
         mysql:
           schema:
               type: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
-              name: Manage Schema
+              name: Manage schema
           file-query:
               type: receive-command(list<string> sql-url, object connection)
-              name: Run Sql Query
+              name: Run a SQL query
           dbms:
               type: publish-signal(object)
-              name: Database Parameters
+              name: Database parameters
           db-host:
               type: publish-signal(string)
-              name: Database Host
+              name: Database host
           db-port:
               type: publish-signal(int)
-              name: Database listen port
+              name: Database port
 
-    app:
+    AppServer:
       type: reference.Submodule
       configuration:
         __locator.application-id: "Application Server"
@@ -378,31 +397,31 @@ application:
               name: EC2 instance type
           quantity:
               type: configuration(int)
-              name: Appliction hosts quantity
+              name: No. application hosts
         tomcat:
           build-app:
               type: receive-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
-              name: Maven Build
+              name: Maven build
           deploy-libs:
               type: receive-command(list<string> lib-uri)
-              name: Deploy Libs
+              name: Deploy libs
           deploy-war:
               type: receive-command(string uri, string path, object context-attrs, object context-nodes)
-              name: Deploy war/jar
+              name: Deploy a war/jar
           reconfigure:
               type: receive-command(string java-opts)
-              name: Reconfigure Tomcat
+              name: Reconfigure tomcat
           manage-service:
               type: receive-command(string service-action)
-              name: Manage Service
+              name: Manage service
           app-hosts:
               type: publish-signal(list<string>)
-              name: Broadleaf Application Hosts
+              name: Application hosts
           app-port:
               type: publish-signal(int)
-              name: Appliction listen port
+              name: Application port
 
-    lb:
+    LoadBalancer:
       type: reference.Submodule
       configuration:
         __locator.application-id: "Load Balancer"
@@ -410,10 +429,11 @@ application:
         haproxy:
           add-servers:
               type: receive-command(list<string> app-hosts, int app-port, string lb-bucket => string entry-url)
-              name: Add Servers
+              name: Add servers
           reconfigure-servers:
               type: receive-command(list<string> app-hosts, int app-port, string lb-bucket)
-              name: Reconfigure Servers
+              name: Reconfigure servers
           lb-stats:
               type: publish-signal(object)
-              name: Haproxy statistics
+              name: HAProxy statistics
+
