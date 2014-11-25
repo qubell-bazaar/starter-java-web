@@ -23,3 +23,5 @@ bin/*
 .kitchen.local.yml
 berks/
 *.bak
+.lime-env/
+report.xml

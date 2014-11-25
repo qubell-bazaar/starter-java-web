@@ -1,11 +1,9 @@
 import os
-
 import requests
-from qubell.api.private.testing import environment, instance, values
+
+from qubell.api.testing import *
 from qubell.api.tools import retry
 from testtools import skip
-
-from test_runner import BaseComponentTestCase
 
 def eventually(*exceptions):
     """
@@ -77,18 +75,16 @@ def check_site(instance):
     }
 })
 class PetClinicComponentTestCase(BaseComponentTestCase):
-    name = "starter-java-web"
+    name = "PetClinic"
     meta = "https://raw.githubusercontent.com/qubell-bazaar/starter-java-web/master/meta.yml"
     db_name = "petclinic"
     apps = [{
         "name": name,
         "settings": {"destroyInterval": 7200000},
-        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))  
    }]
-  
     @classmethod
     def timeout(cls):
-        return 120 
+        return 30
  
     @instance(byApplication=name)
     @values({"lb-host": "host"})
@@ -117,6 +113,8 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
         params = {'input.app-quantity': '2',
                  'input.app-branch': instance.parameters['input.app-branch']}
         instance.reconfigure(parameters=params)
+                 'input.app-branch': instance.parameters['input.app-branch']}
+        instance.reconfigure(parameters=params)
         assert instance.ready(timeout=30)
 
         check_site(instance)
@@ -135,5 +133,3 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
 
         check_site(instance)
         resp = requests.get("http://" + host, verify=False)
-
-        assert 'Updated PetClinic :: a Spring Framework demonstration' in resp.text
