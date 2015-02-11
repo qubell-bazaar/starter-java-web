@@ -1,11 +1,9 @@
 import os
-
 import requests
-from qubell.api.private.testing import environment, instance, values
+
+from qubell.api.testing import *
 from qubell.api.tools import retry
 from testtools import skip
-
-from test_runner import BaseComponentTestCase
 
 def eventually(*exceptions):
     """
@@ -83,12 +81,11 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
     apps = [{
         "name": name,
         "settings": {"destroyInterval": 7200000},
-        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))  
+        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
    }]
-  
     @classmethod
     def timeout(cls):
-        return 120 
+        return 120
  
     @instance(byApplication=name)
     @values({"lb-host": "host"})

@@ -97,6 +97,8 @@ application:
               entry-url:
                   type: publish-signal(string)
                   name: PetClinic
+              mysql-con:
+                  type: publish-signal(object)
 
           required: [mysql, tomcat, haproxy]
           configuration:
@@ -213,6 +215,8 @@ application:
                 return:
                   entry-url:
                     value: "{$.result-lb}"
+                  mysql-con:
+                    value: "{$.con}"
               app-scale:
                 steps:
                   - get-env-props:
@@ -263,15 +267,15 @@ application:
                           - Resource: {
                               "name": "jdbc/datasource",
                               "auth": "Container",
-                              "type": "{$.con.db-dstype}",
+                              "type": "{$.mysql-con.db-dstype}",
                               "maxActive": "8",
                               "maxIdle": "8",
                               "maxWait": "-1",
-                              "username": "{$.con.db-user}",
-                              "password": "{$.con.db-user-password}",
-                              "driverClassName": "{$.con.db-driver}",
-                              "url": "{$.con.connection-url}",
-                              "validationQuery": "{$.con.validation-query}",
+                              "username": "{$.mysql-con.db-user}",
+                              "password": "{$.mysql-con.db-user-password}",
+                              "driverClassName": "{$.mysql-con.db-driver}",
+                              "url": "{$.mysql-con.connection-url}",
+                              "validationQuery": "{$.mysql-con.validation-query}",
                               "testOnReturn": "true",
                               "testWhileIdle": "true"
                           }
@@ -335,15 +339,15 @@ application:
                           - Resource: {
                               "name": "jdbc/datasource",
                               "auth": "Container",
-                              "type": "{$.con.db-dstype}",
+                              "type": "{$.mysql-con.db-dstype}",
                               "maxActive": "8",
                               "maxIdle": "8",
                               "maxWait": "-1",
-                              "username": "{$.con.db-user}",
-                              "password": "{$.con.db-user-password}",
-                              "driverClassName": "{$.con.db-driver}",
-                              "url": "{$.con.connection-url}",
-                              "validationQuery": "{$.con.validation-query}",
+                              "username": "{$.mysql-con.db-user}",
+                              "password": "{$.mysql-con.db-user-password}",
+                              "driverClassName": "{$.mysql-con.db-driver}",
+                              "url": "{$.mysql-con.connection-url}",
+                              "validationQuery": "{$.mysql-con.validation-query}",
                               "testOnReturn": "true",
                               "testWhileIdle": "true"
                           }
