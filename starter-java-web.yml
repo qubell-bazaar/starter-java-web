@@ -1,443 +1,245 @@
 application:
   configuration:
-    input.lb-bucket: http://roundrobin:80
-    input.app-fork: qubell
-    input.app-branch: HEAD #red, master
-    input.app-quantity: 1
-
-  bindings:
-    - [main.workflow, Database]
-    - [main.workflow, AppServer]
-    - [main.workflow, LoadBalancer]
-
+    configuration.scm-uri:  "git://github.com/qubell/starter-java-web.git" 
+    configuration.scm-branch:   "master"
+    configuration.clusterSize: 1
+    compute.hardwareId: "c3.large"
+    compute.imageId:    "ami-bf5021d6"
+    compute.login:      "root"
+    compute.locationId: "us-east-1"
   interfaces:
-    input:
-      app-fork: "bind(main.workflow#input.app-fork)"
-      app-branch: "bind(main.workflow#input.app-branch)"
-      lb-bucket: "bind(main.workflow#input.lb-bucket)"
-      app-quantity: "bind(AppServer#input.quantity)"
-    app-meta:
-      application-pic: "bind(metadata#output.application-pic)"
-    endpoints:
-      lb: "bind(LoadBalancer#haproxy.lb-stats)"
-      app: "bind(AppServer#tomcat.app-hosts)"
-      db: "bind(Database#mysql.dbms)"
-      entry: "bind(main.workflow#result.entry-url)"
-
+    configuration:
+      "*": "bind(BuildServer#configuration.*)"
+      clusterSize: "bind(AppCluster#configuration.quantity, ClusterHarvester#input.clusterSize)"
+    compute:
+      "*": "bind(Database#compute.*, LoadBalancer#compute.*, AppCluster.AppServer#compute-config.*)"
+    petclinic:
+      entry-url: "bind(LoadBalancer#haproxy.entry-urls)"
+      app-hosts: "bind(ClusterHarvester#result.app-hosts)"
+      dbms:      "bind(Database#database.dbms)"
+  bindings:
+    - [ClusterHarvester, AppCluster.AppServer]
+    - [AppDeployer, AppCluster.AppServer]
+    - [AppDeployer, Database]
+    - [LoadBalancer, AppCluster.AppServer]
+    - [AppDeployer, BuildServer]
   components:
-    metadata:
-      type: cobalt.common.Constants
+    ClusterHarvester:
+      type: workflow.Instance
       interfaces:
-        output:
-          application-pic:
-            type: publish-signal(map<string, object>)
-            name: ""
+        input:
+          clusterSize: configuration(int)
+        tomcat:
+          app-host:
+             type: consume-signal(string)
+             name: Solr host
+        result:
+          app-hosts: publish-signal(list<string>)
+      required: [tomcat]
       configuration:
-        configuration.values:
-          output.application-pic:
-            large: "https://s3.amazonaws.com/qubell-images/spring.png"
-            small: "https://s3.amazonaws.com/qubell-images/spring_small.png"
-            small-height: 64
-    main:
-      components:
-        workflow:
-          type: workflow.Instance
-          interfaces:
-            input:
-              scm-provider:
-                  type: configuration(string)
-              app-fork:
-                  type: configuration(string)
-                  name: Git fork
-              app-branch:
-                  type: configuration(string)
-                  name: Git branch
-              lb-bucket:
-                  type: configuration(string)
-                  name: LoadBalancer bucket
-              #as constants
-              db-sql-url:
-                  type: configuration(list<string>)
-              db-user:
-                  type: configuration(string)
-              db-password:
-                  type: configuration(string)
-              privileges:
-                  type: configuration(list<string>)
-              lib-uri:
-                  type: configuration(list<string>)
-            mysql:
-              dbms:
-                  type: consume-signal(object)
-              db-host:
-                  type: consume-signal(string)
-              db-port:
-                  type: consume-signal(int)
-              schema:
-                  type: send-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
-              file-query:
-                  type: send-command(object connection, list<string> sql-url)
-            tomcat:
-              build-app:
-                  type: send-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
-              deploy-libs:
-                  type: send-command(list<string> lib-uri)
-              deploy-war:
-                  type: send-command(string uri, string path, object context-attrs, object context-nodes)
-              app-hosts:
-                  type: consume-signal(list<string>)
-              app-port:
-                  type: consume-signal(int)
-            haproxy:
-              add-servers:
-                  type: send-command(list<string> app-hosts, int app-port, string lb-bucket => string entry-url)
-              reconfigure-servers:
-                  type: send-command(list<string> app-hosts, int app-port, string lb-bucket)
-            result:
-              entry-url:
-                  type: publish-signal(string)
-                  name: PetClinic
-              mysql-con:
-                  type: publish-signal(object)
+        configuration.triggers:
+          input.clusterSize: update
+        configuration.propagateStatus: [ update ]
+        configuration.workflows:
+          update: &update
+            steps:
+              - waitPeers:
+                   action: waitPeers
+                   parameters:
+                     interfaces:
+                       tomcat: "{$.clusterSize}"
+                     timeout:
+                       20 minute
+              - get-signals:
+                  action: getSignals
+                  precedingPhases: [ waitPeers ]
+                  parameters:
+                    multi: true
+                  output:
+                    signals: result
+            return:
+              app-hosts:     { value: "{$.signals.tomcat.*.app-host}"}
+          launch: *update
 
-          required: [mysql, tomcat, haproxy]
-          configuration:
-            #Oracle
-            #input.db-sql-url: ["https://dl.dropboxusercontent.com/u/250836/petclinic-oracle-schema.sql", "https://dl.dropboxusercontent.com/u/250836/petclinic-oracle-dataload.sql"]
-            #MySQL
-            input.db-sql-url: ["https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-dataload.sql"]
-            input.db-user: petclinic #const
-            input.db-password: petclinic #const
-            input.privileges: ["all"] #const
-            input.scm-provider: git #const
-            input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://dl.dropboxusercontent.com/u/250836/ojdbc6.jar"]
-
-            configuration.triggers:
-              tomcat.app-hosts: app-scale
-              input.app-fork: rebuild-app
-              input.app-branch: rebuild-app
-
-            configuration.propagateStatus: [ app-scale, rebuild-app ]
-
-            configuration.workflows:
-              launch:
-                steps:
-                  - get-env-props:
-                      action: getEnvironmentProperties
-                      phase: get-env-props
-                      output:
-                        props: result
-                  - manage-schema:
-                      action: mysql.schema
-                      precedingPhases: [ get-env-props ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        db-user: "{$.db-user}"
-                        db-user-password: "{$.db-password}"
-                        db-user-privileges: "{$.privileges}"
-                      output:
-                        con: connection
-                  - upload-sql:
-                      action: mysql.file-query
-                      precedingPhases: [ manage-schema ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        connection: "{$.con}"
-                        sql-url: "{$.db-sql-url}"
-                  - build-app:
-                      action: tomcat.build-app
-                      precedingPhases: [ get-env-props ]
-                      parameters:
-                        commandCallTimeout: 10 minutes
-                        scm-provider: "{$.scm-provider}"
-                        git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
-                        app-branch: "{$.app-branch}"
-                      output:
-                        warlist: wars
-                  - deploy-libs:
-                      action: tomcat.deploy-libs
-                      phase: deploy-libs
-                      precedingPhases: [ get-env-props, build-app ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        lib-uri: "{$.lib-uri}"
-                  - deploy-war:
-                      action: tomcat.deploy-war
-                      phase: deploy-war
-                      precedingPhases: [ upload-sql, build-app, deploy-libs ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        uri: "{$.warlist[0]}"
-                        path: "/"
-                        context-attrs: {
-                          "docBase": "{$.warlist[0]}",
-                          "path": "/",
-                          "debug": "5",
-                          "reloadable": "true",
-                          "crossContext": "true",
-                          "allowLinking": "true"
-                        }
-                        context-nodes:
-                          - Environments: {
-                              "name": "appEnvironment",
-                              "value": "_default",
-                              "type": "java.lang.String",
-                              "override": "false"
-                          }
-                          - Resource: {
-                              "name": "jdbc/datasource",
-                              "auth": "Container",
-                              "type": "{$.con.db-dstype}",
-                              "maxActive": "8",
-                              "maxIdle": "8",
-                              "maxWait": "-1",
-                              "username": "{$.con.db-user}",
-                              "password": "{$.con.db-user-password}",
-                              "driverClassName": "{$.con.db-driver}",
-                              "url": "{$.con.connection-url}",
-                              "validationQuery": "{$.con.validation-query}",
-                              "testOnReturn": "true",
-                              "testWhileIdle": "true"
-                          }
-
-                  - lb-add-server:
-                      action: haproxy.add-servers
-                      precedingPhases: [ deploy-war ]
-                      phase: lb-add-server
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        app-hosts: "{$.props.tomcat.app-hosts}"
-                        app-port: "{$.props.tomcat.app-port}"
-                        lb-bucket: "http://roundrobin:80/"
-                      output:
-                        result-lb: entry-url
-                          #todo move lb-bucket to launch param
-                return:
-                  entry-url:
-                    value: "{$.result-lb}"
-                  mysql-con:
-                    value: "{$.con}"
-              app-scale:
-                steps:
-                  - get-env-props:
-                      action: getEnvironmentProperties
-                      phase: get-env-props
-                      output:
-                        props: result
-                  - build-app:
-                      action: tomcat.build-app
-                      precedingPhases: [ get-env-props ]
-                      parameters:
-                        commandCallTimeout: 10 minutes
-                        scm-provider: "{$.scm-provider}"
-                        git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
-                        app-branch: "{$.app-branch}"
-                      output:
-                        warlist: wars
-                  - deploy-libs:
-                      action: tomcat.deploy-libs
-                      phase: deploy-libs
-                      precedingPhases: [ get-env-props, build-app ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        lib-uri: "{$.lib-uri}"
-                  - deploy-war:
-                      action: tomcat.deploy-war
-                      phase: deploy-war
-                      precedingPhases: [ build-app, deploy-libs ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        uri: "{$.warlist[0]}"
-                        path: "/"
-                        context-attrs: {
-                          "docBase": "{$.warlist[0]}",
-                          "path": "/",
-                          "debug": "5",
-                          "reloadable": "true",
-                          "crossContext": "true",
-                          "allowLinking": "true"
-                        }
-                        context-nodes:
-                          - Environments: {
-                              "name": "appEnvironment",
-                              "value": "_default",
-                              "type": "java.lang.String",
-                              "override": "false"
-                          }
-                          - Resource: {
-                              "name": "jdbc/datasource",
-                              "auth": "Container",
-                              "type": "{$.mysql-con.db-dstype}",
-                              "maxActive": "8",
-                              "maxIdle": "8",
-                              "maxWait": "-1",
-                              "username": "{$.mysql-con.db-user}",
-                              "password": "{$.mysql-con.db-user-password}",
-                              "driverClassName": "{$.mysql-con.db-driver}",
-                              "url": "{$.mysql-con.connection-url}",
-                              "validationQuery": "{$.mysql-con.validation-query}",
-                              "testOnReturn": "true",
-                              "testWhileIdle": "true"
-                          }
-
-                  - lb-reconfigure-servers:
-                      action: haproxy.reconfigure-servers
-                      precedingPhases: [ deploy-war ]
-                      phase: lb-reconfigure-servers
-                      parameters:
-                        commandCallTimeout: 10 minutes
-                        app-hosts: "{$.props.tomcat.app-hosts}"
-                        app-port: "{$.props.tomcat.app-port}"
-                        lb-bucket: "http://roundrobin:80/"
-              rebuild-app:
-                steps:
-                  - get-env-props:
-                      action: getEnvironmentProperties
-                      phase: get-env-props
-                      output:
-                        props: result
-                  - build-app:
-                      action: tomcat.build-app
-                      precedingPhases: [ get-env-props ]
-                      parameters:
-                        commandCallTimeout: 10 minutes
-                        scm-provider: "{$.scm-provider}"
-                        git-uri: "git://github.com/{$.app-fork}/starter-java-web.git"
-                        app-branch: "{$.app-branch}"
-                      output:
-                        warlist: wars
-                  - deploy-libs:
-                      action: tomcat.deploy-libs
-                      phase: deploy-libs
-                      precedingPhases: [ get-env-props, build-app ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        lib-uri: "{$.lib-uri}"
-                  - deploy-war:
-                      action: tomcat.deploy-war
-                      phase: deploy-war
-                      precedingPhases: [ build-app, deploy-libs ]
-                      parameters:
-                        commandCallTimeout: 5 minutes
-                        uri: "{$.warlist[0]}"
-                        path: "/"
-                        context-attrs: {
-                          "docBase": "{$.warlist[0]}",
-                          "path": "/",
-                          "debug": "5",
-                          "reloadable": "true",
-                          "crossContext": "true",
-                          "allowLinking": "true"
-                        }
-                        context-nodes:
-                          - Environments: {
-                              "name": "appEnvironment",
-                              "value": "_default",
-                              "type": "java.lang.String",
-                              "override": "false"
-                          }
-                          - Resource: {
-                              "name": "jdbc/datasource",
-                              "auth": "Container",
-                              "type": "{$.mysql-con.db-dstype}",
-                              "maxActive": "8",
-                              "maxIdle": "8",
-                              "maxWait": "-1",
-                              "username": "{$.mysql-con.db-user}",
-                              "password": "{$.mysql-con.db-user-password}",
-                              "driverClassName": "{$.mysql-con.db-driver}",
-                              "url": "{$.mysql-con.connection-url}",
-                              "validationQuery": "{$.mysql-con.validation-query}",
-                              "testOnReturn": "true",
-                              "testWhileIdle": "true"
-                          }
-
+    AppDeployer:
+      type: workflow.Instance
+      interfaces:
+        input:
+          db-sql-url:
+            type: configuration(list<string>)
+          db-user:
+            type: configuration(string)
+          db-password:
+            type: configuration(string)
+          privileges:
+            type: configuration(list<string>)
+        db:
+          dbms:    consume-signal(object)
+          db-host: consume-signal(string)
+          db-port: consume-signal(int)
+          schema:
+            type: send-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+          file-query:
+             type: send-command(object connection, list<string> sql-url)
+        build-result:
+          war_urls: consume-signal(list<string>)
+        actions:
+          update: receive-command()
+        result:
+          java-opts:     publish-signal(string)
+          uri:           publish-signal(list<string>)
+          path:          publish-signal(list<string>)
+          lib-uri:       publish-signal(list<string>)
+          context-nodes: publish-signal(object)
+          context-attrs: publish-signal(object)
+      required: [ db, build-result ]
+      configuration:
+        input.db-sql-url: ["https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-schema.sql", "https://raw.github.com/qubell-bazaar/component-petclinic/master/sql/petclinic-mysql-dataload.sql"]
+        input.db-user: petclinic #const
+        input.db-password: petclinic #const
+        input.privileges: ["all"] #const
+        configuration.triggers:
+          build-result.war_urls: update
+        configuration.propagateStatus: [ update ]
+        configuration.workflows:
+          update: &update
+            steps:
+              - get-signals:
+                  action: getSignals
+                  output:
+                    signals: result
+              - manage-schema:
+                  action: db.schema
+                  precedingPhases: [ get-signals ]
+                  parameters:
+                    commandCallTimeout: 5 minutes
+                    db-user: "{$.db-user}"
+                    db-user-password: "{$.db-password}"
+                    db-user-privileges: "{$.privileges}"
+                  output:
+                    con: connection
+              - upload-sql:
+                  action: db.file-query
+                  precedingPhases: [ manage-schema ]
+                  parameters:
+                    commandCallTimeout: 5 minutes
+                    connection: "{$.con}"
+                    sql-url: "{$.db-sql-url}"
+            return:
+              java-opts: { value: "$${{JAVA_OPTS}}" }
+              uri: { value: "{$.signals.build-result.war_urls}" }
+              path: { value: ["/"] }
+              lib-uri:      { value: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://dl.dropboxusercontent.com/u/250836/ojdbc6.jar"] }
+              context-attrs:
+                value:
+                  "path": "/"
+                  "debug": "5"
+                  "reloadable": "true"
+                  "crossContext": "true"
+                  "allowLinking": "true" 
+              context-nodes:
+                value:
+                  - Environments:
+                      "name": "appEnvironment"
+                      "value": "_default"
+                      "type": "java.lang.String"
+                      "override": "false"
+                  - Resource:
+                      "name": "jdbc/datasource"
+                      "auth": "Container"
+                      "type": "javax.sql.DataSource"
+                      "maxActive": "8"
+                      "maxIdle": "8"
+                      "maxWait": "-1"
+                      "username": "{$.con.db-user}"
+                      "password": "{$.con.db-user-password}"
+                      "driverClassName": "{$.con.db-driver}"
+                      "url": "{$.con.connection-url}"
+                      "validationQuery": "{$.con.validation-query}"
+                      "testOnReturn": "true"
+                      "testWhileIdle": "true"
+          launch: *update
     Database:
       type: reference.Submodule
       configuration:
-        #__locator.application-id: "MySQL Server"
-        #__locator.application-id: "Oracle DBxe"
         __locator.application-id: "Database"
       interfaces:
-        input:
-          db-port:
-              type: configuration(int)
-              name: Database port
-          db-root-password:
-              type: configuration(string)
-              name: Database root password
-        mysql:
-          schema:
-              type: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
-              name: Manage schema
-          file-query:
-              type: receive-command(list<string> sql-url, object connection)
-              name: Run a SQL query
+        compute: &compute
+          imageId:         configuration(string)
+          hardwareId:      configuration(string)
+          locationId:      configuration(string)
+          login:           configuration(string)
+        database:
           dbms:
-              type: publish-signal(object)
-              name: Database parameters
-          db-host:
-              type: publish-signal(string)
-              name: Database host
+             type: publish-signal(object)
+             name: Database parameters
+          #for ui only
           db-port:
-              type: publish-signal(int)
-              name: Database port
-
-    AppServer:
-      type: reference.Submodule
-      configuration:
-        __locator.application-id: "Application Server"
-      interfaces:
-        input:
-          operating-system:
-              type: configuration(map<string,object>)
-              suggestions:
-                  "centos": {image: "us-east-1/ami-bf5021d6", identity: root}
-                  "amazon": {image: "us-east-1/ami-1ba18d72", identity: ec2-user}
-                  "ubuntu1204": {image: "us-east-1/ami-967edcff", identity: ubuntu}
-                  "ubuntu1004": {image: "us-east-1/ami-9f3906f6", identity: ubuntu}
-          instance-size:
-              type: configuration(string)
-              name: EC2 instance type
-          quantity:
-              type: configuration(int)
-              name: No. application hosts
-        tomcat:
-          build-app:
-              type: receive-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
-              name: Maven build
-          deploy-libs:
-              type: receive-command(list<string> lib-uri)
-              name: Deploy libs
-          deploy-war:
-              type: receive-command(string uri, string path, object context-attrs, object context-nodes)
-              name: Deploy a war/jar
-          reconfigure:
-              type: receive-command(string java-opts)
-              name: Reconfigure tomcat
-          manage-service:
-              type: receive-command(string service-action)
-              name: Manage service
-          app-hosts:
-              type: publish-signal(list<string>)
-              name: Application hosts
-          app-port:
-              type: publish-signal(int)
-              name: Application port
-
+             type: publish-signal(int)
+             name: Database port
+          db-host:
+             type: publish-signal(string)
+             name: Database host
+          schema:
+             type: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+             name: Manage schema
+          file-query:
+             type: receive-command(object connection, list<string> sql-url)
+             name: Run a SQL query
+        configuration:
+          db-port:            { type: configuration(int),          name: Database listen port     }
+          db-root-password:   { type: configuration(string),       name: Database root password   }
+          recipe-url:         { type: configuration(string),       name: Cookbooks url            }
     LoadBalancer:
       type: reference.Submodule
       configuration:
         __locator.application-id: "Load Balancer"
       interfaces:
+        compute: *compute
+        servers:
+          app-host: consume-signal(string)
+          app-uri: consume-signal(list<string>)
         haproxy:
-          add-servers:
-              type: receive-command(list<string> app-hosts, int app-port, string lb-bucket => string entry-url)
-              name: Add servers
-          reconfigure-servers:
-              type: receive-command(list<string> app-hosts, int app-port, string lb-bucket)
-              name: Reconfigure servers
-          lb-stats:
-              type: publish-signal(object)
-              name: HAProxy statistics
-
+          stats-url: { type: publish-signal(string), name: Haproxy statistics }
+          entry-urls: { type: publish-signal(list<string>), name: Entry urls         }
+    BuildServer:
+      type: reference.Submodule
+      configuration:
+        __locator.application-id: "Builder"
+      interfaces:
+        compute-config: *compute
+        configuration:
+          scm-uri:      configuration(string)
+          scm-branch:   configuration(string)
+        build-result:
+          war_urls: publish-signal(list<string>)
+    AppCluster:
+      type: composite.Scaler
+      components:
+        AppServer:
+          type: reference.Submodule
+          configuration:
+            __locator.application-id: "Application Server"
+          interfaces:
+            update-indicator:
+              war-update:    consume-signal(string)
+            source:
+              java-opts:     consume-signal(string)
+              uri:           consume-signal(list<string>)
+              path:          consume-signal(list<string>)
+              lib-uri:       consume-signal(list<string>)
+              context-nodes: consume-signal(object)
+              context-attrs: consume-signal(object)
+            compute-config: *compute
+            compute:
+              networks:       publish-signal(map<string, map<string, string>>)
+              exec:           receive-command(string command, int timeout => string stdOut, string stdErr => string stdOut, string stdErr, int exitCode)
+              put-file:       receive-command(string filename, bytes payload)
+              get-file:       receive-command(string filename => bytes payload)
+            tomcat:
+              app-host: publish-signal(string)
+              app-uri: publish-signal(list<string>)
+            configuration:
+              app-port:     { type: configuration(int),          name: Tomcat listen port }
+              java-opts:    { type: configuration(string),       name: JAVA_OPTS          }
+              recipe-url:   { type: configuration(string),       name: Cookbooks url      }
