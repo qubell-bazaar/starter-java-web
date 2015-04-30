@@ -110,7 +110,7 @@ application:
             input.db-password: petclinic #const
             input.privileges: ["all"] #const
             input.scm-provider: git #const
-            input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://dl.dropboxusercontent.com/u/250836/ojdbc6.jar"]
+            input.lib-uri: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://s3.amazonaws.com/qubell-starter-kit-artifacts/petclinic-deps/ojdbc6.jar"]
 
             configuration.triggers:
               tomcat.app-hosts: app-scale
