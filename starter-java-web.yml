@@ -129,7 +129,7 @@ application:
               java-opts: { value: "$${{JAVA_OPTS}}" }
               uri: { value: "{$.signals.build-result.war_urls}" }
               path: { value: ["/"] }
-              lib-uri:      { value: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://dl.dropboxusercontent.com/u/250836/ojdbc6.jar"] }
+              lib-uri:      { value: ["http://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.26/dbcp-6.0.26.jar", "http://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar", "https://s3.amazonaws.com/qubell-starter-kit-artifacts/petclinic-deps/ojdbc6.jar"] }
               context-attrs:
                 value:
                   "path": "/"
