@@ -41,7 +41,7 @@ application:
           input.clusterSize: update
         configuration.propagateStatus: [ update ]
         configuration.workflows:
-          update: &update
+          update: &update1
             steps:
               - waitPeers:
                    action: waitPeers
@@ -59,7 +59,7 @@ application:
                     signals: result
             return:
               app-hosts:     { value: "{$.signals.tomcat.*.app-host}"}
-          launch: *update
+          launch: *update1
 
     AppDeployer:
       type: workflow.Instance
