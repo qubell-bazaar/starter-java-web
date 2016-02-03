@@ -9,7 +9,8 @@ application:
     compute.locationId: "us-east-1"
   interfaces:
     configuration:
-      "*": "bind(BuildServer#configuration.*)"
+      scm-uri: "bind(BuildServer#configuration.scm-uri)"
+      scm-branch: "bind(BuildServer#configuration.scm-branch)"
       clusterSize: "bind(AppCluster#configuration.quantity, ClusterHarvester#input.clusterSize)"
     compute:
       "*": "bind(Database#compute.*, LoadBalancer#compute.*, AppCluster.AppServer#compute-config.*)"
@@ -60,7 +61,6 @@ application:
             return:
               app-hosts:     { value: "{$.signals.tomcat.*.app-host}"}
           launch: *update1
-
     AppDeployer:
       type: workflow.Instance
       interfaces:
