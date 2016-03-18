@@ -6,7 +6,7 @@ This Starter Kit provides the basic building blocks for deploying, updating and 
 Version 2.0-43p
 -------------
 
-[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/starter-java-web/2.0-39p/meta.yml)
+[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/starter-java-web/2.0-43p/meta.yml)
 
 Features
 --------
