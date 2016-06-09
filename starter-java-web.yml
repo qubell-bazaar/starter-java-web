@@ -391,11 +391,6 @@ application:
         input:
           operating-system:
               type: configuration(map<string,object>)
-              suggestions:
-                  "centos": {image: "us-east-1/ami-bf5021d6", identity: root}
-                  "amazon": {image: "us-east-1/ami-1ba18d72", identity: ec2-user}
-                  "ubuntu1204": {image: "us-east-1/ami-967edcff", identity: ubuntu}
-                  "ubuntu1004": {image: "us-east-1/ami-9f3906f6", identity: ubuntu}
           instance-size:
               type: configuration(string)
               name: EC2 instance type
