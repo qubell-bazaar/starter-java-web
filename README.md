@@ -6,7 +6,7 @@ This Starter Kit provides the basic building blocks for deploying, updating and 
 Version 1.1-34p
 -------------
 
-[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/starter-java-web/1.1-34p/meta.yml)
+[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/starter-java-web/gce/meta.yml)
 
 Features
 --------
