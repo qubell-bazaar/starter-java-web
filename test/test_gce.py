@@ -45,10 +45,6 @@ def check_site(instance):
             "value": "europe-west1-c"
         }, {
             "action": "provisionVms",
-            "parameter": "publicKeyId",
-            "value": "575685fb3004a0ec18b0698b"
-        }, {
-            "action": "provisionVms",
             "parameter": "vmIdentity",
             "value": "ubuntu"
         }]
@@ -64,9 +60,6 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
         "settings": {"destroyInterval": 7200000},
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
     }]
-
-
-
 
     @classmethod
     def environment(cls, organization):
@@ -91,8 +84,8 @@ class PetClinicComponentTestCase(BaseComponentTestCase):
 
         ca["type"] = GCE_CLOUD_TYPE
         ca["name"] = cls.provider
-        ca['parameters'] = {'configuration.identity': os.environ.get('PROVIDER_IDENTITY'),
-                           'configuration.credential': os.environ.get('PROVIDER_CREDENTIAL')}
+        ca['parameters'] = {'configuration.identity': os.environ.get('GCE_PROVIDER_IDENTITY'),
+                           'configuration.credential': os.environ.get('GCE_PROVIDER_CREDENTIAL')}
 
         return infr
 
